@@ -1,0 +1,46 @@
+# ---------------- 私有数据：绝不进仓库 ----------------
+# 你的 API Key（模板 .env.example 会保留）
+.env
+.env.*
+!.env.example
+
+# docs/ 是你的私人材料目录：默认全部忽略，只保留仓库自带的示例
+docs/*
+!docs/示例材料/
+!docs/.gitkeep
+
+# 向量索引（可重建，不该提交）
+chroma_db/
+
+# 个人原则（硬约束，属于私人内容）
+memory/*.md
+!memory/principles.example.md
+
+# 本地运行产物
+analysis_cache/
+reports/
+exports/
+chat_history/
+
+# 自己截的图（README 用的图在 assets/）
+screenshots/
+
+# ---------------- Python ----------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ---------------- 打包产物 ----------------
+build/
+dist/
+*.spec
+
+# ---------------- 编辑器 / 系统 ----------------
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini

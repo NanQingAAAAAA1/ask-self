@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 470" width="1120" height="470" role="img" aria-label="问己 AskSelf 数据流：提问→意图判断→召回→打分→生成→带引用回答，下方是本地索引管线">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#7677EB"/>
+    </marker>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5C5F8E"/>
+    </marker>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0 H0 V28" fill="none" stroke="#2A2C4A" stroke-width="0.6" stroke-dasharray="1 5"/>
+    </pattern>
+  </defs>
+
+  <rect width="1120" height="470" fill="#131428"/>
+  <rect width="1120" height="470" fill="url(#grid)"/>
+
+  <text x="40" y="40" font-family="'Space Grotesk','Noto Sans SC',Helvetica,Arial,sans-serif" font-size="12" letter-spacing="3.2" fill="#9093BD">ASKSELF / DATA FLOW</text>
+  <text x="40" y="66" font-family="'Noto Sans SC',Helvetica,Arial,sans-serif" font-size="17" fill="#E6E7F5">提问走上面一条链，材料走下面一条链；两条链只在「召回」处相遇</text>
+
+  <!-- ============ 上排：问答主链路 ============ -->
+  <g font-family="'Noto Sans SC',Helvetica,Arial,sans-serif">
+    <rect x="40" y="100" width="150" height="66" rx="3" fill="#1E2038" stroke="#5B5BDD" stroke-width="1.2"/>
+    <text x="115" y="128" text-anchor="middle" font-size="14" fill="#E6E7F5">提问</text>
+    <text x="115" y="148" text-anchor="middle" font-size="11" fill="#9093BD">可 @ 圈定范围</text>
+
+    <rect x="218" y="100" width="150" height="66" rx="3" fill="#1E2038" stroke="#3A3C63"/>
+    <text x="293" y="128" text-anchor="middle" font-size="14" fill="#E6E7F5">意图判断</text>
+    <text x="293" y="148" text-anchor="middle" font-size="11" fill="#9093BD">该不该翻记录</text>
+
+    <rect x="396" y="100" width="150" height="66" rx="3" fill="#1E2038" stroke="#3A3C63"/>
+    <text x="471" y="128" text-anchor="middle" font-size="14" fill="#E6E7F5">召回 Top-20</text>
+    <text x="471" y="148" text-anchor="middle" font-size="11" fill="#9093BD">向量近邻</text>
+
+    <rect x="574" y="100" width="150" height="66" rx="3" fill="#1E2038" stroke="#3A3C63"/>
+    <text x="649" y="128" text-anchor="middle" font-size="14" fill="#E6E7F5">DeepSeek 打分</text>
+    <text x="649" y="148" text-anchor="middle" font-size="11" fill="#9093BD">相对阈值过滤</text>
+
+    <rect x="752" y="100" width="150" height="66" rx="3" fill="#1E2038" stroke="#3A3C63"/>
+    <text x="827" y="128" text-anchor="middle" font-size="14" fill="#E6E7F5">生成</text>
+    <text x="827" y="148" text-anchor="middle" font-size="11" fill="#9093BD">注入个人原则</text>
+
+    <rect x="930" y="100" width="150" height="66" rx="3" fill="#1D2440" stroke="#7677EB" stroke-width="1.2"/>
+    <text x="1005" y="128" text-anchor="middle" font-size="14" fill="#E6E7F5">回答 + 引用</text>
+    <text x="1005" y="148" text-anchor="middle" font-size="11" fill="#9093BD">本地 / 网络分色</text>
+  </g>
+
+  <g stroke="#7677EB" stroke-width="1.2" fill="none" marker-end="url(#ar)">
+    <path d="M190 133 H212"/>
+    <path d="M368 133 H390"/>
+    <path d="M546 133 H568"/>
+    <path d="M724 133 H746"/>
+    <path d="M902 133 H924"/>
+  </g>
+
+  <!-- 意图判断：否 → 直接生成 -->
+  <path d="M293 166 V196 H827 V172" stroke="#5C5F8E" stroke-width="1.1" fill="none" stroke-dasharray="5 4" marker-end="url(#ar2)"/>
+  <text x="558" y="190" text-anchor="middle" font-family="'Space Mono',monospace" font-size="10.5" fill="#7C80AE">不需检索 · 直接生成</text>
+
+  <!-- ============ 下排：本地索引管线 ============ -->
+  <g font-family="'Noto Sans SC',Helvetica,Arial,sans-serif">
+    <rect x="40" y="262" width="190" height="66" rx="3" fill="#1A1C31" stroke="#3A3C63" stroke-dasharray="4 4"/>
+    <text x="135" y="290" text-anchor="middle" font-size="13.5" fill="#C7C9E2">docs/ 原始材料</text>
+    <text x="135" y="309" text-anchor="middle" font-size="11" fill="#9093BD">Markdown · 只在本地</text>
+
+    <rect x="258" y="262" width="150" height="66" rx="3" fill="#1A1C31" stroke="#3A3C63" stroke-dasharray="4 4"/>
+    <text x="333" y="290" text-anchor="middle" font-size="13.5" fill="#C7C9E2">切块</text>
+    <text x="333" y="309" text-anchor="middle" font-size="11" fill="#9093BD">512 字 / 50 重叠</text>
+
+    <rect x="436" y="262" width="150" height="66" rx="3" fill="#1A1C31" stroke="#3A3C63" stroke-dasharray="4 4"/>
+    <text x="511" y="290" text-anchor="middle" font-size="13.5" fill="#C7C9E2">DashScope 嵌入</text>
+    <text x="511" y="309" text-anchor="middle" font-size="11" fill="#9093BD">1024 维 · 失败降级</text>
+
+    <rect x="614" y="262" width="150" height="66" rx="3" fill="#1A1C31" stroke="#7677EB" stroke-dasharray="4 4"/>
+    <text x="689" y="290" text-anchor="middle" font-size="13.5" fill="#E6E7F5">ChromaDB</text>
+    <text x="689" y="309" text-anchor="middle" font-size="11" fill="#9093BD">本地持久化</text>
+
+    <rect x="792" y="262" width="288" height="66" rx="3" fill="#1A1C31" stroke="#3A3C63" stroke-dasharray="4 4"/>
+    <text x="936" y="290" text-anchor="middle" font-size="13.5" fill="#C7C9E2">memory/principles.md</text>
+    <text x="936" y="309" text-anchor="middle" font-size="11" fill="#9093BD">不进向量库 · 每次强制注入</text>
+  </g>
+
+  <g stroke="#5C5F8E" stroke-width="1.1" fill="none" marker-end="url(#ar2)" stroke-dasharray="5 4">
+    <path d="M230 295 H252"/>
+    <path d="M408 295 H430"/>
+    <path d="M586 295 H608"/>
+    <path d="M689 262 V232 H471 V172"/>
+    <path d="M936 262 V232 H827 V172"/>
+  </g>
+
+  <!-- ============ 第三行：兜底路径 ============ -->
+  <g font-family="'Noto Sans SC',Helvetica,Arial,sans-serif">
+    <rect x="396" y="382" width="250" height="56" rx="3" fill="#1A1C31" stroke="#3A3C63"/>
+    <text x="521" y="406" text-anchor="middle" font-size="13" fill="#C7C9E2">证据不足 → 改写重试（≤2 轮）</text>
+    <text x="521" y="424" text-anchor="middle" font-size="11" fill="#9093BD">重走 召回 → 打分，先不急着联网</text>
+
+    <rect x="674" y="382" width="200" height="56" rx="3" fill="#1A1C31" stroke="#3A3C63"/>
+    <text x="774" y="406" text-anchor="middle" font-size="13" fill="#C7C9E2">仍为 0 条 → Tavily</text>
+    <text x="774" y="424" text-anchor="middle" font-size="11" fill="#9093BD">只发问题本身，不含材料</text>
+
+    <rect x="902" y="382" width="178" height="56" rx="3" fill="#1A1C31" stroke="#3A3C63"/>
+    <text x="991" y="406" text-anchor="middle" font-size="13" fill="#C7C9E2">每条结论可溯源</text>
+    <text x="991" y="424" text-anchor="middle" font-size="11" fill="#9093BD">没有依据就说没有</text>
+  </g>
+
+  <g stroke="#5C5F8E" stroke-width="1.1" fill="none" marker-end="url(#ar2)" stroke-dasharray="5 4">
+    <path d="M646 410 H668"/>
+    <path d="M874 410 H896"/>
+    <path d="M774 382 V172"/>
+  </g>
+</svg>

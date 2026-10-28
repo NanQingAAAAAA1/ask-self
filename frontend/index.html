@@ -1,0 +1,3344 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>问己 AskSelf · 个人知识库决策助手</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@200;300;400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   问己 · Personal · Prototype
+   Aesthetic: Electric Print — 单色电光蓝 + 印刷版面（严格按 hermes-style SKILL.md）
+   全站只有一个色相（电光蓝 #0000F2 五级明度）+ 一张纸 #F2F2F2。
+   深色主题 = 蓝画布 #0000F2 配纸色字；浅色主题 = 纸面配蓝墨 #000091；
+   侧栏在浅色下整段翻转为蓝画布；另有一张半透明蚀刻线稿装饰底图（.etch）。
+   语义不靠配色，靠印刷手法：本地=实心块 · 网络=虚线描边 · 告警=反白块。
+   骨架沿用 hermes-style：单色主调、零阴影、小圆角、点线分隔、压缩标题
+   ============================================================
+
+   改这套主题前必读的四条（都是实测踩出来的）
+   1. 零阴影是硬约束：环/发光一律用 outline 或伪元素，不要写 box-shadow。
+      伪元素（::-webkit-slider-thumb 等）上的阴影 getComputedStyle 查不到，容易漏。
+   2. 侧栏变量翻转必须同时声明 color:var(--ink)，
+      否则未声明颜色的后代仍继承 body 的墨色，紫底上直接看不见。
+   3. --gold-fill / --gold-ink 是「反白对」：画布上=纸块配深紫字，纸面上=紫块配纸字。
+      任何按钮底都用这对，不要直接用 --amber（那是文字/描边级的亮紫）。
+   4. 全站零 emoji、零符号字符（● ◈ ◎ ▾ ↑ ↓ → ◆）：一律用 .gl-* CSS 图元或 SVG <use>。
+      这类字符在不同字体/系统下会被替换成彩色字形，直接毁掉印刷感。
+      注释里也尽量别写——只有 score ≥ 这类数学关系可以出现在正文。
+   ============================================================ */
+:root{
+  /* 单色占卜紫：全站只有一个色相（hue≈262），五级明度 + 一张米白纸。
+     金/绿/蓝/红多色相版本已被否 —— 违反 hermes DNA 第一条「只有一个色相」。
+     语义不再靠配色，靠印刷手法：本地=实心块 · 网络=虚线描边 · 告警=反白块。 */
+  --amber:#f2f2f2; --amber-deep:#e2e2fa; --gold:#e2e2fa;
+  --jade:#f2f2f2; --red:#ffffff;
+  --cyan:#c9c9f5; --cyan-deep:#b3b3f0;
+
+  /* 面上用纸色（画布上的按钮=纸块配深紫字，纸面上的按钮=紫块配纸字）。
+     取值随主题翻转，所以定义在下面的 [data-theme] 块里，这里不设。 */
+
+  --font-display:"Big Shoulders Display","Noto Serif SC",serif;
+  --font-serif:"Noto Serif SC","Songti SC",serif;
+  --font-body:"Noto Sans SC",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+html[data-theme="dark"]{
+  /* 暗色模式 —— 色号全部提取自 hermes 暗色截图（PIL 采样 + 中位切分聚类）：
+     画布 #1A1B30（占比 55%）· 按钮/强调 #0505D8 · 描边 #3334F1 ·
+     亮紫高光 #7677EB / #5B5BDD · 灰紫 muted #4F5070。
+     站方暗色不是整幅电光蓝实底，而是近黑靛紫画布 + 蓝按钮，饱和度低得多（也就是「淡一点」）。 */
+  --bg:#1a1b30; --bg-2:#1e1f3d; --bg-3:#23244c; --bg-4:#282a5a;
+  --line:#3334f1; --line-soft:#2a2b6e;
+  --ink:#f2f2f2; --ink-2:#c7c9e2; --ink-3:#9093bd;
+  --amber:#9a9bf2; --amber-deep:#8b8cf0; --gold:#9a9bf2;
+  --jade:#f2f2f2; --red:#ffffff;
+  --cyan:#c7c9e2; --cyan-deep:#9093bd;
+  --gold-soft:rgba(139,140,240,.12);
+  --card-line:rgba(139,140,240,.30);
+  --cyan-soft:rgba(199,201,226,.08);
+  --cyan-line:rgba(199,201,226,.35);
+  /* 按钮填充 = 紫系（不是截图里那个纯蓝 #0505D8）：hue 由 240 拉到 250 并降饱和，
+     与画布 #1A1B30 的靛紫同族。配纸字 #f2f2f2 = 4.75:1，hover 加深到 5.5:1 不掉对比度。 */
+  --gold-fill:#5f55e8; --gold-ink:#f2f2f2;
+  --user-ink:#f2f2f2;
+  --shadow:none;
+  color-scheme:dark;
+}
+html.nomotion *, html.nomotion *::before, html.nomotion *::after{
+  animation: none !important; transition: none !important;
+}
+/* ============================================================
+   图标：全站唯一图元系统（内联 SVG，stroke 随 currentColor）
+   ============================================================ */
+.ico{
+  width:1.06em;height:1.06em;display:inline-block;flex-shrink:0;
+  vertical-align:-.14em;fill:none;stroke:currentColor;
+  stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+}
+.ico-sm{width:.9em;height:.9em;stroke-width:1.7}
+.ico-lg{width:1.24em;height:1.24em;stroke-width:1.45}
+.ico-spin{animation:spin 1.1s linear infinite}
+
+/* ------------------------------------------------------------
+   纯 CSS 图元：全站不再出现 ● ◈ ◎ ▾ ↑ ↓ 之类字符
+   （字符在不同字体/系统里会被替换成彩色 emoji，破坏印刷感）
+   ------------------------------------------------------------ */
+.gl{display:inline-block;flex-shrink:0;vertical-align:.02em}
+/* 实心圆点：状态灯 / 列表项目符 */
+.gl-dot{width:.5em;height:.5em;border-radius:50%;background:currentColor;margin-right:.5em;vertical-align:.1em}
+/* 空心菱形：神秘学标记（网络来源） */
+.gl-diamond{width:.46em;height:.46em;border:1px solid currentColor;transform:rotate(45deg);margin-right:.45em;vertical-align:.12em}
+/* 双环：占卜靶心 */
+.gl-ring{width:.62em;height:.62em;border-radius:50%;border:1px solid currentColor;margin-right:.45em}
+/* 下拉三角：替代 ▾ */
+.gl-caret{width:0;height:0;border-left:.3em solid transparent;border-right:.3em solid transparent;border-top:.36em solid currentColor}
+/* 键帽里的上下箭头：替代 ↑ ↓ */
+.gl-arrow{width:0;height:0;border-left:.2em solid transparent;border-right:.2em solid transparent}
+.gl-arrow.up{border-bottom:.3em solid currentColor}
+.gl-arrow.down{border-top:.3em solid currentColor;margin-left:2px}
+
+kbd{
+  display:inline-block;min-width:1.35em;padding:1px 4px;margin:0 1px;
+  font-family:var(--font-mono);font-size:.86em;line-height:1.3;text-align:center;
+  color:var(--ink-2);border:1px solid var(--line);border-radius:2px;
+  background:var(--bg-3);vertical-align:1px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:var(--font-body); color:var(--ink); background:var(--bg);
+  overflow:hidden; -webkit-font-smoothing:antialiased; font-size:14.5px; line-height:1.7;
+  transition:background .35s ease,color .35s ease;
+}
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(900px 540px at 78% -10%, color-mix(in srgb,var(--amber) 8%,transparent), transparent 66%),
+    radial-gradient(680px 460px at 2% 104%, color-mix(in srgb,var(--cyan) 7%,transparent), transparent 62%),
+    radial-gradient(1px 1px at 11% 18%, rgba(242,242,242,.30), transparent),
+    radial-gradient(1px 1px at 27% 62%, rgba(242,242,242,.18), transparent),
+    radial-gradient(1.4px 1.4px at 41% 9%, rgba(242,242,242,.26), transparent),
+    radial-gradient(1px 1px at 56% 38%, rgba(242,242,242,.15), transparent),
+    radial-gradient(1.4px 1.4px at 68% 74%, rgba(242,242,242,.22), transparent),
+    radial-gradient(1px 1px at 79% 24%, rgba(242,242,242,.17), transparent),
+    radial-gradient(1px 1px at 88% 58%, rgba(242,242,242,.20), transparent),
+    radial-gradient(1.2px 1.2px at 94% 88%, rgba(242,242,242,.16), transparent),
+    radial-gradient(1px 1px at 18% 86%, rgba(242,242,242,.14), transparent),
+    radial-gradient(1px 1px at 62% 94%, rgba(242,242,242,.12), transparent);
+}
+body::after{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.05; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+::selection{background:color-mix(in srgb,var(--amber) 32%,transparent)}
+
+/* 蚀刻装饰底图（imagery.md 的黑底白线原理，改为半透明背景装饰）：
+   画布上 = 纸色线稿 + plus-lighter；纸面上 = 蓝色线稿 + multiply。
+   只有一个色相，透明度压低，不与正文争抢。 */
+.etch{
+  position:fixed; z-index:0; pointer-events:none;
+  right:-170px; bottom:-150px; width:880px; height:880px;
+  background-repeat:no-repeat; background-size:contain;
+  opacity:.18; mix-blend-mode:plus-lighter;
+  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20800%20800%22%20fill%3D%22none%22%20stroke%3D%22%237677eb%22%20stroke-width%3D%221%22%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%2226%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%2250%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%2274%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%2298%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22122%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22146%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22170%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22194%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22218%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22242%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22266%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22290%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22314%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22338%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22362%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22400%22%20r%3D%22386%22%2F%3E%3Cline%20x1%3D%22604.0%22%20y1%3D%22400.0%22%20x2%3D%22782.0%22%20y2%3D%22400.0%22%2F%3E%3Cline%20x1%3D%22605.2%22%20y1%3D%22418.0%22%20x2%3D%22788.5%22%20y2%3D%22434.0%22%2F%3E%3Cline%20x1%3D%22592.0%22%20y1%3D%22433.9%22%20x2%3D%22775.2%22%20y2%3D%22466.2%22%2F%3E%3Cline%20x1%3D%22612.5%22%20y1%3D%22456.9%22%20x2%3D%22774.8%22%20y2%3D%22500.4%22%2F%3E%3Cline%20x1%3D%22585.1%22%20y1%3D%22467.4%22%20x2%3D%22761.8%22%20y2%3D%22531.7%22%2F%3E%3Cline%20x1%3D%22592.1%22%20y1%3D%22489.6%22%20x2%3D%22744.4%22%20y2%3D%22560.6%22%2F%3E%3Cline%20x1%3D%22581.9%22%20y1%3D%22505.0%22%20x2%3D%22731.7%22%20y2%3D%22591.5%22%2F%3E%3Cline%20x1%3D%22559.7%22%20y1%3D%22511.8%22%20x2%3D%22712.1%22%20y2%3D%22618.5%22%2F%3E%3Cline%20x1%3D%22558.6%22%20y1%3D%22533.1%22%20x2%3D%22695.7%22%20y2%3D%22648.1%22%2F%3E%3Cline%20x1%3D%22538.6%22%20y1%3D%22538.6%22%20x2%3D%22670.8%22%20y2%3D%22670.8%22%2F%3E%3Cline%20x1%3D%22526.0%22%20y1%3D%22550.1%22%20x2%3D%22649.4%22%20y2%3D%22697.2%22%2F%3E%3Cline%20x1%3D%22518.7%22%20y1%3D%22569.6%22%20x2%3D%22618.0%22%20y2%3D%22711.3%22%2F%3E%3Cline%20x1%3D%22510.0%22%20y1%3D%22590.5%22%20x2%3D%22594.5%22%20y2%3D%22736.9%22%2F%3E%3Cline%20x1%3D%22483.3%22%20y1%3D%22578.5%22%20x2%3D%22561.9%22%20y2%3D%22747.1%22%2F%3E%3Cline%20x1%3D%22473.2%22%20y1%3D%22601.1%22%20x2%3D%22533.4%22%20y2%3D%22766.5%22%2F%3E%3Cline%20x1%3D%22454.9%22%20y1%3D%22604.8%22%20x2%3D%22498.4%22%20y2%3D%22767.1%22%2F%3E%3Cline%20x1%3D%22436.8%22%20y1%3D%22608.8%22%20x2%3D%22467.5%22%20y2%3D%22783.1%22%2F%3E%3Cline%20x1%3D%22418.0%22%20y1%3D%22605.2%22%20x2%3D%22433.1%22%20y2%3D%22778.6%22%2F%3E%3Cline%20x1%3D%22400.0%22%20y1%3D%22601.0%22%20x2%3D%22400.0%22%20y2%3D%22780.0%22%2F%3E%3Cline%20x1%3D%22381.6%22%20y1%3D%22610.2%22%20x2%3D%22365.7%22%20y2%3D%22791.5%22%2F%3E%3Cline%20x1%3D%22365.6%22%20y1%3D%22595.0%22%20x2%3D%22333.3%22%20y2%3D%22778.2%22%2F%3E%3Cline%20x1%3D%22346.4%22%20y1%3D%22599.9%22%20x2%3D%22301.1%22%20y2%3D%22769.0%22%2F%3E%3Cline%20x1%3D%22327.8%22%20y1%3D%22598.3%22%20x2%3D%22269.7%22%20y2%3D%22758.0%22%2F%3E%3Cline%20x1%3D%22310.4%22%20y1%3D%22592.1%22%20x2%3D%22237.7%22%20y2%3D%22748.0%22%2F%3E%3Cline%20x1%3D%22294.5%22%20y1%3D%22582.7%22%20x2%3D%22203.5%22%20y2%3D%22740.3%22%2F%3E%3Cline%20x1%3D%22276.7%22%20y1%3D%22576.1%22%20x2%3D%22180.9%22%20y2%3D%22712.9%22%2F%3E%3Cline%20x1%3D%22273.4%22%20y1%3D%22550.9%22%20x2%3D%22150.0%22%20y2%3D%22698.0%22%2F%3E%3Cline%20x1%3D%22250.1%22%20y1%3D%22549.9%22%20x2%3D%22124.2%22%20y2%3D%22675.8%22%2F%3E%3Cline%20x1%3D%22246.8%22%20y1%3D%22528.6%22%20x2%3D%22105.1%22%20y2%3D%22647.5%22%2F%3E%3Cline%20x1%3D%22238.6%22%20y1%3D%22513.0%22%20x2%3D%2282.2%22%20y2%3D%22622.5%22%2F%3E%3Cline%20x1%3D%22212.9%22%20y1%3D%22508.0%22%20x2%3D%2270.0%22%20y2%3D%22590.5%22%2F%3E%3Cline%20x1%3D%22207.9%22%20y1%3D%22489.6%22%20x2%3D%2255.6%22%20y2%3D%22560.6%22%2F%3E%3Cline%20x1%3D%22199.8%22%20y1%3D%22472.9%22%20x2%3D%2240.1%22%20y2%3D%22531.0%22%2F%3E%3Cline%20x1%3D%22198.1%22%20y1%3D%22454.1%22%20x2%3D%2223.3%22%20y2%3D%22500.9%22%2F%3E%3Cline%20x1%3D%22192.2%22%20y1%3D%22436.6%22%20x2%3D%2219.9%22%20y2%3D%22467.0%22%2F%3E%3Cline%20x1%3D%22182.8%22%20y1%3D%22419.0%22%20x2%3D%2216.5%22%20y2%3D%22433.6%22%2F%3E%3Cline%20x1%3D%22192.0%22%20y1%3D%22400.0%22%20x2%3D%2211.0%22%20y2%3D%22400.0%22%2F%3E%3Cline%20x1%3D%22192.8%22%20y1%3D%22381.9%22%20x2%3D%2216.5%22%20y2%3D%22366.4%22%2F%3E%3Cline%20x1%3D%22200.1%22%20y1%3D%22364.7%22%20x2%3D%2222.8%22%20y2%3D%22333.5%22%2F%3E%3Cline%20x1%3D%22188.5%22%20y1%3D%22343.3%22%20x2%3D%2231.0%22%20y2%3D%22301.1%22%2F%3E%3Cline%20x1%3D%22197.0%22%20y1%3D%22326.1%22%20x2%3D%2231.6%22%20y2%3D%22265.9%22%2F%3E%3Cline%20x1%3D%22217.8%22%20y1%3D%22315.1%22%20x2%3D%2254.7%22%20y2%3D%22239.0%22%2F%3E%3Cline%20x1%3D%22216.4%22%20y1%3D%22294.0%22%20x2%3D%2267.4%22%20y2%3D%22208.0%22%2F%3E%3Cline%20x1%3D%22228.0%22%20y1%3D%22279.5%22%20x2%3D%2283.0%22%20y2%3D%22178.0%22%2F%3E%3Cline%20x1%3D%22229.9%22%20y1%3D%22257.3%22%20x2%3D%22105.1%22%20y2%3D%22152.5%22%2F%3E%3Cline%20x1%3D%22246.6%22%20y1%3D%22246.6%22%20x2%3D%22126.3%22%20y2%3D%22126.3%22%2F%3E%3Cline%20x1%3D%22269.5%22%20y1%3D%22244.5%22%20x2%3D%22150.0%22%20y2%3D%22102.0%22%2F%3E%3Cline%20x1%3D%22287.6%22%20y1%3D%22239.4%22%20x2%3D%22181.5%22%20y2%3D%2287.9%22%2F%3E%3Cline%20x1%3D%22295.0%22%20y1%3D%22218.1%22%20x2%3D%22207.0%22%20y2%3D%2265.7%22%2F%3E%3Cline%20x1%3D%22315.9%22%20y1%3D%22219.6%22%20x2%3D%22234.3%22%20y2%3D%2244.7%22%2F%3E%3Cline%20x1%3D%22330.2%22%20y1%3D%22208.3%22%20x2%3D%22269.3%22%20y2%3D%2241.0%22%2F%3E%3Cline%20x1%3D%22345.9%22%20y1%3D%22198.1%22%20x2%3D%22300.1%22%20y2%3D%2227.2%22%2F%3E%3Cline%20x1%3D%22366.1%22%20y1%3D%22208.0%22%20x2%3D%22332.3%22%20y2%3D%2215.9%22%2F%3E%3Cline%20x1%3D%22382.9%22%20y1%3D%22204.7%22%20x2%3D%22365.8%22%20y2%3D%229.5%22%2F%3E%3Cline%20x1%3D%22400.0%22%20y1%3D%22189.0%22%20x2%3D%22400.0%22%20y2%3D%2211.0%22%2F%3E%3Cline%20x1%3D%22419.1%22%20y1%3D%22181.8%22%20x2%3D%22434.3%22%20y2%3D%227.5%22%2F%3E%3Cline%20x1%3D%22438.2%22%20y1%3D%22183.3%22%20x2%3D%22466.9%22%20y2%3D%2220.8%22%2F%3E%3Cline%20x1%3D%22452.8%22%20y1%3D%22203.0%22%20x2%3D%22501.2%22%20y2%3D%2222.3%22%2F%3E%3Cline%20x1%3D%22470.1%22%20y1%3D%22207.4%22%20x2%3D%22533.0%22%20y2%3D%2234.5%22%2F%3E%3Cline%20x1%3D%22488.3%22%20y1%3D%22210.6%22%20x2%3D%22564.4%22%20y2%3D%2247.4%22%2F%3E%3Cline%20x1%3D%22509.5%22%20y1%3D%22210.3%22%20x2%3D%22593.5%22%20y2%3D%2264.8%22%2F%3E%3Cline%20x1%3D%22512.4%22%20y1%3D%22239.4%22%20x2%3D%22625.4%22%20y2%3D%2278.1%22%2F%3E%3Cline%20x1%3D%22526.0%22%20y1%3D%22249.9%22%20x2%3D%22646.8%22%20y2%3D%22105.8%22%2F%3E%3Cline%20x1%3D%22547.8%22%20y1%3D%22252.2%22%20x2%3D%22676.5%22%20y2%3D%22123.5%22%2F%3E%3Cline%20x1%3D%22564.7%22%20y1%3D%22261.8%22%20x2%3D%22691.9%22%20y2%3D%22155.1%22%2F%3E%3Cline%20x1%3D%22559.7%22%20y1%3D%22288.2%22%20x2%3D%22720.3%22%20y2%3D%22175.7%22%2F%3E%3Cline%20x1%3D%22587.1%22%20y1%3D%22292.0%22%20x2%3D%22732.6%22%20y2%3D%22208.0%22%2F%3E%3Cline%20x1%3D%22593.9%22%20y1%3D%22309.6%22%20x2%3D%22752.6%22%20y2%3D%22235.6%22%2F%3E%3Cline%20x1%3D%22602.0%22%20y1%3D%22326.5%22%20x2%3D%22769.3%22%20y2%3D%22265.6%22%2F%3E%3Cline%20x1%3D%22600.9%22%20y1%3D%22346.2%22%20x2%3D%22770.9%22%20y2%3D%22300.6%22%2F%3E%3Cline%20x1%3D%22612.7%22%20y1%3D%22362.5%22%20x2%3D%22780.1%22%20y2%3D%22333.0%22%2F%3E%3Cline%20x1%3D%22621.2%22%20y1%3D%22380.7%22%20x2%3D%22788.5%22%20y2%3D%22366.0%22%2F%3E%3Cline%20x1%3D%22462.9%22%20y1%3D%22402.7%22%20x2%3D%22524.9%22%20y2%3D%22405.5%22%2F%3E%3Cline%20x1%3D%22463.5%22%20y1%3D%22414.1%22%20x2%3D%22542.5%22%20y2%3D%22431.6%22%2F%3E%3Cline%20x1%3D%22455.4%22%20y1%3D%22423.0%22%20x2%3D%22521.0%22%20y2%3D%22450.1%22%2F%3E%3Cline%20x1%3D%22454.8%22%20y1%3D%22434.9%22%20x2%3D%22507.1%22%20y2%3D%22468.2%22%2F%3E%3Cline%20x1%3D%22445.0%22%20y1%3D%22441.2%22%20x2%3D%22504.7%22%20y2%3D%22495.9%22%2F%3E%3Cline%20x1%3D%22436.5%22%20y1%3D%22447.6%22%20x2%3D%22484.6%22%20y2%3D%22510.3%22%2F%3E%3Cline%20x1%3D%22429.6%22%20y1%3D%22456.8%22%20x2%3D%22468.8%22%20y2%3D%22532.2%22%2F%3E%3Cline%20x1%3D%22419.5%22%20y1%3D%22462.0%22%20x2%3D%22438.8%22%20y2%3D%22523.0%22%2F%3E%3Cline%20x1%3D%22407.8%22%20y1%3D%22459.5%22%20x2%3D%22419.8%22%20y2%3D%22550.7%22%2F%3E%3Cline%20x1%3D%22397.2%22%20y1%3D%22463.9%22%20x2%3D%22393.8%22%20y2%3D%22540.9%22%2F%3E%3Cline%20x1%3D%22387.0%22%20y1%3D%22458.6%22%20x2%3D%22367.3%22%20y2%3D%22547.4%22%2F%3E%3Cline%20x1%3D%22374.7%22%20y1%3D%22461.0%22%20x2%3D%22346.0%22%20y2%3D%22530.3%22%2F%3E%3Cline%20x1%3D%22362.9%22%20y1%3D%22458.2%22%20x2%3D%22319.4%22%20y2%3D%22526.5%22%2F%3E%3Cline%20x1%3D%22357.4%22%20y1%3D%22446.4%22%20x2%3D%22300.0%22%20y2%3D%22509.1%22%2F%3E%3Cline%20x1%3D%22351.6%22%20y1%3D%22437.1%22%20x2%3D%22294.5%22%20y2%3D%22481.0%22%2F%3E%3Cline%20x1%3D%22347.7%22%20y1%3D%22427.2%22%20x2%3D%22280.3%22%20y2%3D%22462.3%22%2F%3E%3Cline%20x1%3D%22342.8%22%20y1%3D%22418.0%22%20x2%3D%22268.4%22%20y2%3D%22441.5%22%2F%3E%3Cline%20x1%3D%22332.6%22%20y1%3D%22408.9%22%20x2%3D%22263.2%22%20y2%3D%22418.0%22%2F%3E%3Cline%20x1%3D%22342.1%22%20y1%3D%22397.5%22%20x2%3D%22245.1%22%20y2%3D%22393.2%22%2F%3E%3Cline%20x1%3D%22334.6%22%20y1%3D%22385.5%22%20x2%3D%22268.2%22%20y2%3D%22370.8%22%2F%3E%3Cline%20x1%3D%22342.7%22%20y1%3D%22376.3%22%20x2%3D%22268.8%22%20y2%3D%22345.7%22%2F%3E%3Cline%20x1%3D%22351.1%22%20y1%3D%22368.8%22%20x2%3D%22287.8%22%20y2%3D%22328.5%22%2F%3E%3Cline%20x1%3D%22352.8%22%20y1%3D%22356.8%22%20x2%3D%22291.6%22%20y2%3D%22300.7%22%2F%3E%3Cline%20x1%3D%22359.2%22%20y1%3D%22346.8%22%20x2%3D%22312.3%22%20y2%3D%22285.8%22%2F%3E%3Cline%20x1%3D%22372.3%22%20y1%3D%22346.8%22%20x2%3D%22328.0%22%20y2%3D%22261.6%22%2F%3E%3Cline%20x1%3D%22379.9%22%20y1%3D%22336.1%22%20x2%3D%22361.8%22%20y2%3D%22278.9%22%2F%3E%3Cline%20x1%3D%22391.5%22%20y1%3D%22335.6%22%20x2%3D%22380.6%22%20y2%3D%22252.3%22%2F%3E%3Cline%20x1%3D%22402.8%22%20y1%3D%22336.1%22%20x2%3D%22406.5%22%20y2%3D%22251.1%22%2F%3E%3Cline%20x1%3D%22413.9%22%20y1%3D%22337.5%22%20x2%3D%22428.1%22%20y2%3D%22273.1%22%2F%3E%3Cline%20x1%3D%22424.9%22%20y1%3D%22339.9%22%20x2%3D%22457.0%22%20y2%3D%22262.3%22%2F%3E%3Cline%20x1%3D%22431.2%22%20y1%3D%22351.1%22%20x2%3D%22473.1%22%20y2%3D%22285.3%22%2F%3E%3Cline%20x1%3D%22439.9%22%20y1%3D%22356.5%22%20x2%3D%22492.6%22%20y2%3D%22299.0%22%2F%3E%3Cline%20x1%3D%22451.6%22%20y1%3D%22360.4%22%20x2%3D%22506.3%22%20y2%3D%22318.4%22%2F%3E%3Cline%20x1%3D%22452.3%22%20y1%3D%22372.8%22%20x2%3D%22528.6%22%20y2%3D%22333.0%22%2F%3E%3Cline%20x1%3D%22463.9%22%20y1%3D%22379.9%22%20x2%3D%22521.1%22%20y2%3D%22361.8%22%2F%3E%3Cline%20x1%3D%22458.5%22%20y1%3D%22392.3%22%20x2%3D%22522.9%22%20y2%3D%22383.8%22%2F%3E%3C%2Fsvg%3E");
+}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--amber);background-clip:content-box}
+
+#app{position:relative;z-index:1;display:flex;height:100%}
+
+/* ============================ SIDEBAR ============================ */
+aside{
+  width:296px; flex-shrink:0; height:100%; overflow:hidden;
+  background:var(--bg-2); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; padding:14px 16px 11px; gap:10px;
+}
+.brand{display:flex;gap:10px;align-items:flex-start}
+.brand-mark{
+  width:34px;height:34px;flex-shrink:0;border-radius:2px;
+  border:1px solid var(--card-line);
+  display:grid;place-items:center; color:var(--amber);
+  font-family:var(--font-serif); font-weight:400; font-size:16px;line-height:1;
+  transform:rotate(45deg);position:relative;
+}
+.brand-mark::after{
+  content:"";position:absolute;inset:4px;border-radius:1px;
+  border:1px solid color-mix(in srgb,var(--amber) 34%,transparent);
+}
+.brand-mark span{transform:rotate(-45deg);position:relative;z-index:1}
+.brand h1{font-family:var(--font-serif);font-weight:300;font-size:19px;line-height:1.35;letter-spacing:.16em}
+.brand small{display:block;font-family:var(--font-mono);font-size:9px;letter-spacing:1.4px;color:var(--ink-3);margin-top:2px;text-transform:uppercase}
+
+.local-pill{
+  /* 本地=实心反白块：画布上是纸块，纸面上是紫块（--gold-fill/--gold-ink 随主题翻转） */
+  display:flex;align-items:center;gap:7px; font-size:10.5px; color:var(--gold-ink);
+  border:1px solid var(--gold-fill);
+  background:var(--gold-fill);
+  border-radius:2px; padding:4px 10px; width:fit-content;
+}
+.local-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--gold-ink);outline:none;animation:pulse 2.4s infinite}
+@keyframes pulse{50%{opacity:.45}}
+
+.kb-stats{
+  border:1px solid var(--line);border-radius:3px;background:var(--bg-3);
+  padding:9px 12px; font-size:11px; color:var(--ink-2);
+}
+.kb-grid{display:grid;grid-template-columns:1fr auto 1fr auto;gap:2px 10px;align-items:center}
+.kb-grid span{font-family:var(--font-mono);font-size:10px;color:var(--ink-3)}
+.kb-grid b{color:var(--ink);font-family:var(--font-mono);font-size:10.5px;text-align:right}
+.kb-stats .row{display:flex;justify-content:space-between;padding:2px 0}
+.kb-stats .row b{color:var(--ink);font-weight:600;font-family:var(--font-mono);font-size:10.5px}
+.kb-stats .chunks{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}
+.kb-stats .path{margin-top:5px;padding-top:5px;border-top:1px dashed var(--line);font-family:var(--font-mono);font-size:9px;color:var(--ink-3);word-break:break-all;line-height:1.6}
+
+.group{display:flex;flex-direction:column;gap:9px}
+.group-title{
+  font-family:var(--font-mono);font-size:9.5px;letter-spacing:2.2px;color:var(--ink-3);
+  text-transform:uppercase;display:flex;align-items:center;gap:9px;
+}
+.group-title::after{content:"";flex:1;height:1px;background:var(--line)}
+.field label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-2);margin-bottom:4px}
+.field label .mono{font-family:var(--font-mono);color:var(--amber);font-size:10.5px}
+input[type=password]{
+  width:100%;background:var(--bg-3);border:1px solid var(--line);border-radius:3px;
+  padding:6px 10px;color:var(--ink);font-family:var(--font-mono);font-size:10.5px;letter-spacing:1px;
+  transition:border-color .2s;
+}
+input[type=password]:focus{outline:none;border-color:var(--amber);box-shadow:none;outline:1px solid var(--amber);outline-offset:2px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:3px;background:var(--line);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  background:var(--amber);border:2px solid var(--bg-2);
+  outline:1px solid var(--amber);cursor:grab;
+}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--amber);border:2px solid var(--bg-2);outline:1px solid var(--amber);cursor:grab}
+.scale-ticks{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:9px;color:var(--ink-3);margin-top:2px}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.switch-row .txt{font-size:12px;color:var(--ink-2)}
+.switch-row .txt em{display:block;font-style:normal;font-size:10px;color:var(--ink-3);margin-top:1px}
+.switch-row .txt .tag-cyan{color:var(--cyan)}
+.switch{position:relative;width:40px;height:22px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.switch .slider{position:absolute;inset:0;border-radius:2px;background:var(--bg-4);border:1px solid var(--line);transition:.25s;cursor:pointer}
+/* 开关：方角（滑块也是 2px 圆角，和轨道一致，不再是圆点） */
+.switch .slider::before{content:"";position:absolute;width:16px;height:16px;left:2px;top:2px;border-radius:2px;background:var(--ink-3);transition:.25s}
+.switch input:checked + .slider{background:color-mix(in srgb,var(--amber) 45%,transparent);border-color:var(--amber)}
+.switch input:checked + .slider::before{transform:translateX(18px);background:var(--amber);box-shadow:none}
+.switch.cyan input:checked + .slider{background:color-mix(in srgb,var(--cyan) 42%,transparent);border-color:var(--cyan)}
+.switch.cyan input:checked + .slider::before{background:var(--cyan);box-shadow:none}
+
+.btn{
+  width:100%;padding:8px 13px;border-radius:3px;font-family:var(--font-body);font-size:12.5px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .15s,background .2s,border-color .2s;
+}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:color-mix(in srgb,var(--gold-fill) 90%,transparent);color:var(--gold-ink);border:1px solid var(--gold-fill);font-weight:600}
+.btn-ghost{background:transparent;color:var(--ink-2);border:1px solid var(--line)}
+.btn-ghost:hover{color:var(--ink);border-color:var(--ink-3);background:var(--bg-3)}
+.btn svg{width:14px;height:14px}
+
+/* ------------------------------------------------------------
+   主按钮：紫系填充 + 悬浮「沿边框流动的光弧」
+   ------------------------------------------------------------
+   做法照抄 hermes-agent.nousresearch.com 的 .hermes-button-hover-border：
+   用「border-box 蒙版 − content-box 蒙版」的 XOR 差集，把元素挖成一个 1.25px 的空心环，
+   环里铺一条 300% 大的斜向渐变（透明的暗段 + currentColor 的亮段，交错两段光），
+   再让渐变缓慢平移 → 光就沿边框游走。参数全部取自站点 CSS 实测：
+     padding:1.25px 决定环粗；渐变 160deg；两段亮光；2.23s linear infinite。
+   静态时 opacity:0，只有 hover/focus 才浮现，所以不 hover 的截图与现在完全一致。
+   html.nomotion 会统一把 animation 关掉（见文件上方规则），无头验收不受影响。
+   ------------------------------------------------------------ */
+.btn-primary,.new-chat,.send-btn{position:relative;isolation:isolate}
+.btn-primary::after,.new-chat::after,.send-btn::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;overflow:hidden;
+  padding:1.25px;pointer-events:none;z-index:0;
+  opacity:0;transition:opacity .18s ease;
+  background-image:linear-gradient(160deg,
+    transparent 0% 15%,
+    currentColor 20%,
+    color-mix(in srgb,currentColor 45%,transparent) 25%,
+    transparent 35% 55%,
+    currentColor 60%,
+    color-mix(in srgb,currentColor 45%,transparent) 65%,
+    transparent 75% 95%,
+    currentColor 100%);
+  background-size:300% 300%;
+  background-position:0% 0%;
+  /* 两段线性蒙版 + exclude：只留下 padding 那一圈 */
+  -webkit-mask-image:linear-gradient(#000 0 0),linear-gradient(#000 0 0);
+  mask-image:linear-gradient(#000 0 0),linear-gradient(#000 0 0);
+  -webkit-mask-clip:content-box,border-box;
+  mask-clip:content-box,border-box;
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+}
+@keyframes btn-arc{from{background-position:0% 0%}to{background-position:100% 100%}}
+/* hover：填充从 90% 半透明走实（和站点一致——是"变实"而不是"变亮"），光弧淡入并开始流动 */
+.btn-primary:hover,.new-chat:hover,.send-btn:hover{background:var(--gold-fill);border-color:var(--gold-fill)}
+.btn-primary:hover::after,.new-chat:hover::after,.send-btn:hover::after{
+  opacity:1;animation:btn-arc 2.23s linear infinite;
+}
+@media (prefers-reduced-motion:reduce){
+  .btn-primary:hover::after,.new-chat:hover::after,.send-btn:hover::after{animation:none}
+}
+
+
+/* ===== 会话面板（新建 / 历史） ===== */
+/* 滚动区域只圈在「会话列表」这一块里面（用户明确要求：不要整栏贯通、不要连带把导出按钮顶出去）。
+   做法：侧栏自己 overflow:hidden，conv-panel 吃掉剩余高度，列表用 flex:0 1 auto + min-height:0
+   —— 会话少时列表保持自然高度、导出按钮紧跟其后（没有滚动条）；会话多到装不下时
+   列表才被压缩成滚动区，导出按钮与页脚始终留在原位。 */
+.conv-panel{display:flex;flex-direction:column;gap:8px;flex:1;min-height:0}
+.new-chat{background:color-mix(in srgb,var(--gold-fill) 90%,transparent);color:var(--gold-ink);border:1px solid var(--gold-fill);font-weight:600;flex:none}
+.new-chat svg{width:14px;height:14px}
+.conv-list{display:flex;flex-direction:column;gap:3px;flex:0 1 auto;min-height:0;overflow-y:auto;padding-right:2px}
+.conv-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:3px;cursor:pointer;border:1px solid transparent;transition:background .15s,border-color .15s}
+.conv-item:hover{background:var(--bg-3)}
+.conv-item.active{background:var(--gold-soft);border-color:var(--card-line)}
+.conv-item .ci-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.conv-item .ci-title{font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-item .ci-time{font-family:var(--font-mono);font-size:9px;color:var(--ink-3);letter-spacing:.5px}
+.conv-item .ci-del{flex-shrink:0;width:20px;height:20px;border:0;background:transparent;border-radius:3px;color:var(--ink-3);font-size:16px;line-height:1;cursor:pointer;opacity:0;transition:opacity .15s,color .15s,background .15s}
+.conv-item:hover .ci-del{opacity:1}
+.conv-item .ci-del:hover{color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent)}
+.conv-empty{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);text-align:center;padding:12px 4px;line-height:1.6}
+.conv-export{display:flex;flex-wrap:wrap;gap:4px;flex:none;padding-top:8px;border-top:1px dashed var(--line)}
+.ce-select{flex:0 0 100%;padding:5px 6px;font-size:11px;border:1px solid var(--line);border-radius:3px;background:var(--bg-2);color:var(--ink);font-family:var(--font-mono)}
+.ce-btn{flex:1 1 30%;padding:5px 4px;font-size:10.5px;border:1px solid var(--line);border-radius:3px;background:var(--bg-2);color:var(--ink-2);cursor:pointer;transition:all .15s;font-family:var(--font-mono);white-space:nowrap}
+.ce-btn:hover{border-color:var(--card-line);color:var(--amber);background:var(--gold-soft)}
+.ce-btn.ce-danger:hover{color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,var(--line));background:color-mix(in srgb,var(--red) 8%,transparent)}
+
+/* ============================ 日记分析页 ============================ */
+.an-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.an-stat{border:1px solid var(--line);border-radius:3px;padding:12px 14px;background:var(--bg-2)}
+.an-stat b{display:block;font-family:var(--font-display);font-size:24px;font-weight:600;color:var(--ink)}
+.an-stat b.amber{color:var(--amber)}.an-stat b.jade{color:var(--jade)}.an-stat b.cyan{color:var(--cyan)}
+.an-stat span{font-size:11px;color:var(--ink-3)}
+.an-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.an-row .sep{flex:1}
+/* 注意：.btn 基础是 width:100%，放进 flex 行会各自占满导致按钮竖排 */
+.an-row .btn{width:auto}
+.an-chip{padding:5px 12px;font-size:12px;border:1px solid var(--line);border-radius:2px;background:var(--bg-2);color:var(--ink-2);cursor:pointer;font-family:var(--font-mono)}
+.an-chip:hover{border-color:var(--card-line);color:var(--amber)}
+.an-chip.active{background:var(--gold-soft);border-color:var(--card-line);color:var(--amber)}
+.an-date{padding:6px 10px;font-size:12px;border:1px solid var(--line);border-radius:3px;background:var(--bg-2);color:var(--ink);font-family:var(--font-mono)}
+.an-check{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);cursor:pointer;user-select:none}
+.an-progress{height:4px;border-radius:2px;background:var(--bg-3);overflow:hidden;margin:10px 0;display:none}
+.an-progress i{display:block;height:100%;width:0;background:var(--amber);transition:width .3s}
+.an-chart{width:100%;height:auto;aspect-ratio:640/170;display:block}
+/* ---- 曲线「从左往右延展」 ----
+   用 clip 矩形横向展开，而不是 stroke-dashoffset：
+   能量那条本身就是虚线（stroke-dasharray:5 3），拿 dashoffset 做动画会把虚线拉成实线；
+   clip 对实线/虚线/圆点一视同仁，视觉上就是曲线自己从左边长出来。
+   触发时机由 IntersectionObserver 控（图表跨过视口中线），每次滚到都重播。 */
+.an-chart .an-clip-rect{transform-box:view-box;transform-origin:0 0;transform:scaleX(1)}
+.an-chart .an-clip-rect.collapsed{transform:scaleX(0)}
+.an-chart .an-clip-rect.playing{animation:an-reveal 1s cubic-bezier(.38,.62,.2,1) forwards}
+@keyframes an-reveal{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+/* 兜底：动效被全局关掉时必须还原成完整可见，否则图会一直是空的 */
+html.nomotion .an-chart .an-clip-rect{transform:none !important;animation:none !important}
+@media (prefers-reduced-motion:reduce){
+  .an-chart .an-clip-rect{transform:none !important;animation:none !important}
+}
+/* 曲线图例：线条用 CSS 画，不用 ━ / ┄ 字符 */
+.lg-line{display:inline-flex;align-items:center;gap:6px}
+.lg-line::before{content:"";width:16px;height:0;border-top:2px solid currentColor;flex:none}
+.lg-line.dashed::before{border-top-style:dashed}
+.an-bars{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.an-bar{display:grid;grid-template-columns:92px 1fr 34px;align-items:center;gap:8px;font-size:11.5px}
+.an-bar .nm{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an-bar .track{height:8px;border-radius:3px;background:var(--bg-3);overflow:hidden}
+.an-bar .fill{height:100%;border-radius:3px;background:var(--gold)}
+.an-bar .ct{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);text-align:right}
+.an-card{border:1px solid var(--line);border-radius:3px;padding:14px 16px;margin:10px 0;background:var(--bg-2)}
+.ac-group-title{margin:18px 0 2px;font-family:var(--font-mono);font-size:12px;letter-spacing:1px;color:var(--cyan);font-weight:600}
+.ac-group-title:first-child{margin-top:0}
+.ac-group{display:flex;flex-direction:column}
+.ac-group .an-card:first-child{margin-top:4px}
+.an-card .ac-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.an-card .ac-date{font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--amber)}
+.an-card .ac-src{font-family:var(--font-mono);font-size:10px;color:var(--ink-3)}
+.an-card .ac-scores{margin-left:auto;display:flex;gap:8px;font-family:var(--font-mono);font-size:11px}
+.ac-tag{display:inline-block;padding:2px 9px;border-radius:2px;font-size:10.5px;margin:2px 4px 2px 0;border:1px solid var(--line);color:var(--ink-2)}
+.ac-tag.em{background:var(--gold-soft);border-color:var(--card-line);color:var(--amber-deep)}
+.ac-list{margin:6px 0;padding-left:18px;font-size:13px;color:var(--ink-2);line-height:1.75}
+.ac-list li b{color:var(--ink)}
+.ac-quote{border-left:3px solid var(--gold);padding:2px 10px;margin:6px 0;color:var(--ink-2);font-size:12.5px;line-height:1.7;background:var(--gold-soft);border-radius:0 3px 3px 0}
+.ac-conflict{border-left:3px solid var(--red);padding:2px 10px;margin:6px 0;font-size:12.5px;line-height:1.7;border-radius:0 3px 3px 0;background:color-mix(in srgb,var(--red) 7%,transparent)}
+.an-empty{text-align:center;padding:40px 20px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;line-height:1.9}
+.ex-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0}
+.ex-field{display:flex;flex-direction:column;gap:5px}
+.ex-field label{font-size:11px;color:var(--ink-3);font-family:var(--font-mono);letter-spacing:.5px}
+.ex-field select,.ex-field input{padding:7px 10px;font-size:12.5px;border:1px solid var(--line);border-radius:3px;background:var(--bg-2);color:var(--ink)}
+.ex-preview{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-2);padding:8px 12px;border:1px dashed var(--line);border-radius:3px;margin:8px 0;background:var(--bg-2)}
+
+/* ============================ MAIN ============================ */
+main{flex:1;display:flex;flex-direction:column;min-width:0;height:100%}
+header{
+  flex-shrink:0;height:60px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 26px;border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--bg) 82%,transparent);
+  backdrop-filter:blur(12px);
+}
+.h-title{display:flex;align-items:baseline;gap:13px}
+.h-title h2{font-family:var(--font-display);font-weight:600;font-size:17px;letter-spacing:1px}
+.h-title .tag{
+  font-family:var(--font-mono);font-size:9px;letter-spacing:1.6px;color:var(--amber);
+  border:1px solid var(--card-line);background:var(--gold-soft);border-radius:3px;padding:2px 7px;
+  transform:translateY(-2px);
+}
+.h-right{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--ink-3);font-family:var(--font-mono)}
+.h-local{display:flex;align-items:center;gap:6px;color:var(--jade)}
+.icon-btn{
+  width:34px;height:34px;border-radius:3px;border:1px solid var(--line);background:var(--bg-3);
+  color:var(--ink-2);cursor:pointer;display:grid;place-items:center;transition:.2s;
+}
+.icon-btn:hover{color:var(--amber);border-color:var(--amber)}
+.icon-btn svg{width:15px;height:15px}
+
+#chatScroll{flex:1;overflow-y:auto;scroll-behavior:smooth}
+#thread{max-width:880px;margin:0 auto;padding:28px 28px 20px;display:flex;flex-direction:column;gap:22px}
+
+/* welcome */
+#welcome{max-width:760px;margin:0 auto;padding:min(8vh,72px) 28px 30px;text-align:center;animation:rise .7s ease both}
+#welcome.hidden{display:none}
+#welcome h3{font-family:var(--font-display);font-weight:600;font-size:clamp(26px,3.4vw,38px);line-height:1.4;letter-spacing:1px;margin-bottom:15px}
+#welcome h3 em{font-style:normal;color:var(--amber);position:relative;white-space:nowrap}
+#welcome h3 em::after{content:"";position:absolute;left:0;right:0;bottom:2px;height:8px;background:var(--gold-soft);z-index:-1;border-radius:3px}
+#welcome .lead{color:var(--ink-2);font-size:14px;max-width:590px;margin:0 auto 30px}
+#welcome .lead b{color:var(--ink);font-weight:600}
+.w-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:28px;text-align:left}
+.w-card{border:1px solid var(--line);border-radius:3px;background:var(--bg-3);padding:16px 15px;position:relative;overflow:hidden;transition:transform .25s,border-color .25s}
+.w-card:hover{transform:translateY(-3px);border-color:var(--card-line)}
+.w-card.cyan:hover{border-color:var(--cyan-line)}
+.w-card .num{font-family:var(--font-display);font-style:italic;font-size:15px;color:var(--amber);opacity:.85}
+.w-card.cyan .num{color:var(--cyan)}
+.w-card h4{font-size:13px;margin:6px 0 5px;font-weight:700;letter-spacing:.5px}
+.w-card p{font-size:11.5px;color:var(--ink-2);line-height:1.65}
+
+/* turns */
+.turn{display:flex;flex-direction:column;gap:7px;animation:rise .45s ease both}
+.turn.user{align-items:flex-end}
+.turn.assistant{align-items:stretch}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ------------------------------------------------------------
+   打字机光标：首次进入某个页面时，页面顶部那句说明逐字打出，
+   末尾挂一根随字移动的方块光标。JS 只负责往文本节点里回填字符，
+   光标交给 ::after —— 它天然落在最后一个内联字符后面，不会打断 <em>/<b> 的结构。
+   ------------------------------------------------------------ */
+@keyframes tw-blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+/* 光标是独立元素，由 JS 一路插在当前正在打的那个文本节点后面。
+   不能用 ::after —— 它永远贴在元素最末尾，遇到 <br> 会掉到下一行去。 */
+.tw-caret{
+  display:inline-block; width:max(2px,.06em); height:.92em;
+  margin-left:.08em; vertical-align:-.1em;
+  background:var(--ink); animation:tw-blink .92s steps(1) infinite;
+}
+.bubble-user{
+  max-width:72%;padding:11px 16px;border-radius:3px;font-size:14px;
+  background:var(--gold-fill);color:var(--gold-ink);
+  font-weight:500;box-shadow:none;
+}
+.a-card{
+  border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:3px;
+  background:var(--bg-3);padding:16px 20px 18px;box-shadow:var(--shadow);
+}
+.a-head{display:flex;align-items:center;gap:9px;font-family:var(--font-mono);font-size:10px;letter-spacing:1.1px;color:var(--ink-3);margin-bottom:11px;flex-wrap:wrap}
+.a-head .diamond{color:var(--amber)}
+.a-head .model{color:var(--ink-2)}
+.a-head .time{margin-left:auto}
+.badge{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.4px;border-radius:3px;padding:2px 8px;border:1px solid var(--line)}
+.badge.high{color:var(--jade);border-color:color-mix(in srgb,var(--jade) 35%,transparent);background:color-mix(in srgb,var(--jade) 9%,transparent)}
+.badge.medium{color:var(--amber);border-color:var(--card-line);background:var(--gold-soft)}
+.badge.low{color:var(--red);border-color:color-mix(in srgb,var(--red) 35%,transparent);background:color-mix(in srgb,var(--red) 8%,transparent)}
+.badge.web{color:var(--cyan);border-color:var(--cyan-line);background:var(--cyan-soft)}
+.badge.muted{color:var(--ink-3)}
+.a-body{font-size:14px;line-height:1.85;color:var(--ink)}
+.a-body b{font-weight:700}
+.a-body .warn{display:block;margin-top:11px;padding:10px 13px;border-left:2px solid var(--amber);background:var(--gold-soft);border-radius:0 3px 3px 0;font-size:12.5px;color:var(--ink-2)}
+.a-body .cc-path{font-size:12px}
+
+/* web fallback banner */
+.web-banner{
+  display:flex;gap:10px;align-items:flex-start;margin-bottom:13px;
+  border:1px dashed var(--line);background:transparent;border-radius:3px;padding:10px 13px;
+  font-size:12px;color:var(--ink-2);line-height:1.65;
+}
+.web-banner .wi{color:var(--cyan);flex-shrink:0;margin-top:2px}
+.web-banner b{color:var(--cyan);font-weight:600}
+.web-banner .wb-note{display:block;font-family:var(--font-mono);font-size:9.5px;color:var(--ink-3);margin-top:3px}
+
+.cite-ref{
+  /* 本地证据=实心块（印刷里的「墨块」） */
+  display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;
+  margin:0 2px;border-radius:3px;border:1px solid var(--gold-fill);background:var(--gold-fill);
+  color:var(--gold-ink);font-family:var(--font-mono);font-size:10.5px;font-weight:600;cursor:pointer;
+  vertical-align:1px;text-decoration:none;transition:.18s;
+}
+.cite-ref.web{border-style:dashed;background:transparent;color:var(--amber)}
+.cite-ref:hover{background:transparent;border-color:var(--amber);color:var(--amber);transform:translateY(-1px)}
+.cite-ref.web:hover{background:var(--amber);border-style:solid;color:var(--gold-ink)}
+
+/* funnel */
+.funnel{margin:15px 0 4px;border:1px solid var(--line-soft);border-radius:3px;padding:13px 15px 11px;background:color-mix(in srgb,var(--bg-2) 60%,transparent)}
+.funnel-head{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:1.3px;color:var(--ink-3);margin-bottom:11px;text-transform:uppercase;flex-wrap:wrap}
+.funnel-steps{display:flex;align-items:center;gap:7px;margin-bottom:13px;flex-wrap:wrap}
+.fstep{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--ink-3);font-family:var(--font-mono);white-space:nowrap}
+.fstep b{color:var(--ink-2);font-weight:500}
+.fstep .fdot{width:7px;height:7px;border-radius:50%;background:var(--ink-3)}
+.fstep.done .fdot{background:var(--jade);box-shadow:none}
+.fstep.done b{color:var(--jade)}
+.fstep.web .fdot{background:var(--cyan);box-shadow:none}
+.fstep.web b{color:var(--cyan)}
+.farrow{position:relative;width:18px;height:1px;background:var(--line);flex-shrink:0;display:inline-block}
+.farrow::after{content:"";position:absolute;right:0;top:-2.5px;width:5px;height:5px;
+  border-top:1px solid var(--line);border-right:1px solid var(--line);transform:rotate(45deg)}
+.bars{display:flex;align-items:flex-end;gap:2px;height:58px;padding-bottom:18px;position:relative;border-bottom:1px dashed var(--line)}
+.bar{flex:1;min-width:0;border-radius:2px 2px 0 0;background:var(--ink-3);opacity:.45;position:relative;transition:background .3s,opacity .3s,box-shadow .3s;cursor:default}
+.bar.mid{background:var(--ink-3);opacity:.55}
+.bar.kept{background:var(--amber);opacity:1;box-shadow:none}
+.bar.low{opacity:.3}
+.bar::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
+  background:var(--bg-4);border:1px solid var(--line);border-radius:3px;padding:4px 8px;
+  font-family:var(--font-mono);font-size:9.5px;color:var(--ink);white-space:nowrap;
+  opacity:0;pointer-events:none;transition:opacity .15s;z-index:5;box-shadow:var(--shadow);
+}
+.bar:hover::after{opacity:1}
+.bar:hover{transform:scaleY(1.06);transform-origin:bottom}
+.threshold-line{position:absolute;left:0;right:0;border-top:1px dashed var(--red);opacity:.55}
+.threshold-line span{position:absolute;right:0;top:-16px;font-family:var(--font-mono);font-size:8.5px;color:var(--red)}
+.legend{display:flex;gap:15px;margin-top:9px;font-family:var(--font-mono);font-size:9.5px;color:var(--ink-3);flex-wrap:wrap}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.legend .lg-kept{background:var(--amber)}
+.legend .lg-mid{background:var(--ink-3);opacity:.55}
+.legend .lg-low{background:var(--ink-3);opacity:.3}
+
+/* web rail inside funnel */
+.web-rail{margin-top:12px;border-top:1px dashed var(--cyan-line);padding-top:11px}
+.wr-head{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:1.2px;color:var(--cyan);margin-bottom:9px;flex-wrap:wrap}
+.wr-head .wr-cnt{margin-left:auto;color:var(--ink-3)}
+.wr-row{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:3px;border:1px solid color-mix(in srgb,var(--cyan) 22%,transparent);background:var(--cyan-soft);margin-bottom:6px}
+.wr-row .wr-globe{color:var(--cyan);flex-shrink:0;display:grid;place-items:center}
+.wr-row .wr-title{font-size:11.5px;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wr-row .wr-dom{font-family:var(--font-mono);font-size:9.5px;color:var(--ink-3);flex-shrink:0}
+.wr-row.dead{border-style:dashed;opacity:.7;background:transparent}
+.wr-row.dead .wr-title{color:var(--ink-3)}
+.wr-note{font-family:var(--font-mono);font-size:9px;color:var(--ink-3);margin-top:3px;display:block}
+
+/* expander */
+.expander{margin-top:13px;border:1px solid var(--line-soft);border-radius:3px;overflow:hidden;background:color-mix(in srgb,var(--bg-2) 50%,transparent)}
+.expander > button{
+  width:100%;display:flex;align-items:center;gap:9px;padding:11px 15px;background:transparent;border:0;cursor:pointer;
+  font-family:var(--font-body);font-size:12.5px;color:var(--ink-2);text-align:left;
+}
+.expander > button:hover{color:var(--ink);background:var(--gold-soft)}
+.expander > button .chev{margin-left:auto;transition:transform .25s;color:var(--amber);font-size:10px}
+.expander[open] > button .chev{transform:rotate(180deg)}
+.exp-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s ease}
+.expander[open] .exp-panel{grid-template-rows:1fr}
+.exp-inner{overflow:hidden}
+.exp-pad{padding:4px 15px 15px;display:flex;flex-direction:column;gap:10px}
+
+.cite-group-label{
+  display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:9.5px;
+  letter-spacing:1.6px;text-transform:uppercase;margin:5px 0 0;
+}
+.cite-group-label::after{content:"";flex:1;height:1px;background:var(--line)}
+.cite-group-label.local{color:var(--amber)}
+.cite-group-label.web{color:var(--ink-2)}
+.cite-group-label.web::after{background:none;border-top:1px dashed var(--line-soft)}
+
+/* citation card — local */
+.cite-card{
+  display:grid;grid-template-columns:1fr 46px;gap:4px 12px;
+  border:1px solid var(--line);border-left:2px solid var(--amber);border-radius:3px;
+  padding:12px 14px;background:var(--bg-3);transition:border-color .25s,transform .2s;
+}
+.cite-card:hover{transform:translateY(-1px)}
+.cite-card.flash{animation:flash 1.6s ease}
+@keyframes flash{
+  0%,100%{border-color:var(--line)}
+  18%,55%{border-color:var(--amber)}
+}
+.cc-head{grid-column:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cc-tag{
+  font-family:var(--font-mono);font-size:9px;letter-spacing:.8px;color:var(--amber);
+  border:1px solid var(--card-line);border-radius:3px;padding:1.5px 7px;background:var(--gold-soft);
+}
+.cc-path{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-2);word-break:break-all}
+.cc-url{font-size:12px;color:var(--ink);text-decoration:none;font-weight:600;line-height:1.5}
+.cc-url:hover{color:var(--cyan);text-decoration:underline}
+.ring{grid-column:2;grid-row:1/span 3;align-self:center;justify-self:center;position:relative;width:44px;height:44px}
+.ring svg{transform:rotate(-90deg)}
+.ring .val{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--amber)}
+.ring.web-seal{border:1px solid var(--cyan-line);border-radius:50%;background:var(--cyan-soft);display:grid;place-items:center;color:var(--cyan)}
+.cc-date{grid-column:1;font-family:var(--font-mono);font-size:10px;color:var(--ink-3);letter-spacing:.4px}
+.cc-date.web{color:var(--cyan)}
+.cc-quote{grid-column:1;font-family:var(--font-display);font-size:12.5px;line-height:1.75;color:var(--ink-2);padding-left:11px;border-left:2px solid var(--line);font-style:italic}
+/* citation card — web */
+.cite-card.web{border:1px dashed var(--line);border-left:2px solid var(--ink-2)}
+.cite-card.web:hover{border-color:var(--cyan-line)}
+.cite-card.web .cc-tag{color:var(--ink-2);border:1px dashed var(--line);background:transparent}
+.cite-card.web .cc-quote{border-left-color:var(--cyan-line);font-style:normal;font-family:var(--font-body);font-size:12px}
+.cite-card.web.flash{animation:flashw 1.6s ease}
+@keyframes flashw{
+  0%,100%{border-color:var(--line)}
+  18%,55%{border-color:var(--cyan)}
+}
+.noise-row{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:3px;border:1px dashed var(--line);opacity:.62;font-size:11px}
+.noise-row .np{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);flex:1;word-break:break-all}
+.noise-row .ns{font-family:var(--font-mono);font-size:10px;color:var(--red);border:1px solid color-mix(in srgb,var(--red) 30%,transparent);border-radius:3px;padding:1px 6px;flex-shrink:0}
+
+/* stages */
+.stages{border:1px solid var(--line);border-radius:3px;background:var(--bg-3);padding:17px 20px;box-shadow:var(--shadow)}
+.stages-title{font-family:var(--font-mono);font-size:10px;letter-spacing:1.4px;color:var(--ink-3);margin-bottom:14px;text-transform:uppercase}
+.steps{display:flex;flex-direction:column;gap:11px}
+.step{display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--ink-3);transition:color .3s;flex-wrap:wrap}
+.step .sdot{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--ink-3);flex-shrink:0;display:grid;place-items:center;transition:.3s}
+.step.active{color:var(--ink)}
+.step.active .sdot{border-color:var(--amber);background:var(--gold-soft);animation:breathe 1.1s infinite}
+.step.web.active .sdot{border-color:var(--cyan);background:var(--cyan-soft)}
+@keyframes breathe{50%{transform:scale(1.22);border-color:var(--amber)}}
+.step.done{color:var(--ink-2)}
+.step.done .sdot{border-color:var(--jade);background:var(--jade)}
+.step.web.done .sdot{border-color:var(--cyan);background:var(--cyan)}
+.step.done .sdot::after{content:"";width:5px;height:3px;border-left:1.5px solid var(--bg);border-bottom:1.5px solid var(--bg);transform:rotate(-45deg) translateY(-1px)}
+.step .smeta{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--ink-3)}
+.step.active .smeta{color:var(--amber)}
+.step.web.active .smeta{color:var(--cyan)}
+.step .spin{width:11px;height:11px;border:1.5px solid var(--line);border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite;margin-left:auto}
+.step.web .spin{border-top-color:var(--cyan)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.jev-grid,.web-grid{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0 3px 23px;width:100%}
+.jcell{width:13px;height:13px;border-radius:3px;background:var(--bg-4);border:1px solid var(--line-soft);transition:.15s}
+.jcell.kept{background:var(--amber);border-color:var(--amber);box-shadow:none}
+.jcell.drop{background:var(--bg-4);opacity:.5}
+.wcell{min-width:56px;height:21px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;color:var(--ink-3);padding:0 8px;border:1px solid var(--line-soft);background:var(--bg-4)}
+.wcell.kept{background:var(--cyan-soft);border-color:var(--cyan-line);color:var(--cyan)}
+.wcell.dead{opacity:.45}
+.jev-counter,.web-counter{font-family:var(--font-mono);font-size:10px;color:var(--amber);margin-left:auto;align-self:center}
+.web-counter{color:var(--cyan)}
+
+/* empty evidence */
+.empty-card{border:1.5px dashed color-mix(in srgb,var(--red) 45%,transparent);border-radius:3px;background:color-mix(in srgb,var(--red) 6%,transparent);padding:26px 24px;text-align:center}
+.empty-card.web-tried{border-color:var(--cyan-line);background:var(--cyan-soft)}
+.empty-card .eicon{width:46px;height:46px;margin:0 auto 13px;border-radius:3px;border:1px solid color-mix(in srgb,var(--red) 35%,transparent);display:grid;place-items:center;color:var(--red)}
+.empty-card.web-tried .eicon{border-color:var(--cyan-line);color:var(--cyan)}
+.empty-card h4{font-family:var(--font-display);font-size:16px;font-weight:600;margin-bottom:7px}
+.empty-card p{font-size:12.5px;color:var(--ink-2);max-width:510px;margin:0 auto 5px}
+.empty-card .trace{margin:13px auto 0;max-width:510px;text-align:left;font-family:var(--font-mono);font-size:10px;color:var(--ink-3);background:var(--bg-3);border:1px solid var(--line);border-radius:3px;padding:10px 13px;line-height:1.9}
+.empty-card .trace b{color:var(--red);font-weight:500}
+.empty-card .trace .ok{color:var(--cyan);font-weight:500}
+
+/* error */
+.err-card{ /* 告警=反白块：不靠红色，靠黑白反转 */ border:1px solid var(--ink);border-radius:3px;background:var(--gold-fill);color:var(--gold-ink);padding:18px 20px;display:flex;gap:14px;align-items:flex-start}
+.err-card .eicon{color:var(--gold-ink);flex-shrink:0;margin-top:2px}
+.err-card h4{font-size:13.5px;margin-bottom:4px}
+.err-card p{font-size:12px;color:var(--gold-ink);opacity:.82;font-family:var(--font-mono);line-height:1.8}
+.err-card .btn{width:auto;margin-top:11px;padding:7px 18px;font-size:12px}
+
+/* composer */
+#composer{flex-shrink:0;padding:10px 28px 15px;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--bg) 88%,transparent) 28%)}
+.composer-inner{max-width:880px;margin:0 auto}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px}
+.chip{
+  font-size:11.5px;color:var(--ink-2);background:var(--bg-3);border:1px solid var(--line);
+  border-radius:2px;padding:5px 12px;cursor:pointer;transition:.2s;font-family:var(--font-body);
+  display:inline-flex;align-items:center;gap:6px;
+}
+.chip:hover{color:var(--amber);border-color:var(--card-line);background:var(--gold-soft)}
+.chip .cx{font-family:var(--font-mono);font-size:9px;opacity:.7}
+.chip.cyan:hover{color:var(--cyan);border-color:var(--cyan-line);background:var(--cyan-soft)}
+.inputbar{display:flex;gap:10px;align-items:flex-end;background:var(--bg-3);border:1px solid var(--line);border-radius:3px;padding:9px 9px 9px 17px;transition:border-color .2s}
+.inputbar:focus-within{border-color:var(--amber);box-shadow:none;outline:1px solid var(--amber);outline-offset:2px}
+.inputbar input{flex:1;background:transparent;border:0;outline:0;color:var(--ink);font-family:var(--font-body);font-size:14px;padding:7px 0}
+.inputbar input::placeholder{color:var(--ink-3)}
+.send-btn{
+  width:37px;height:37px;border-radius:3px;border:0;cursor:pointer;flex-shrink:0;
+  background:color-mix(in srgb,var(--gold-fill) 90%,transparent);color:var(--gold-ink);
+  display:grid;place-items:center;transition:transform .15s,background .2s,border-color .2s;
+}
+.send-btn:active{transform:scale(.94)}
+.send-btn svg{width:16px;height:16px}
+.composer-hint{text-align:center;font-family:var(--font-mono);font-size:9.5px;color:var(--ink-3);margin-top:7px;letter-spacing:.4px}
+
+/* toast */
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);z-index:50;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{
+  background:var(--bg-4);border:1px solid var(--card-line);color:var(--ink);font-size:12px;
+  border-radius:3px;padding:10px 17px;box-shadow:var(--shadow);opacity:0;transition:.3s;
+  display:flex;align-items:center;gap:9px;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast .td{color:var(--amber)}
+
+@media (max-width:920px){
+  aside{display:none}
+  .w-flow{grid-template-columns:1fr}
+}
+
+/* ============================================================
+   v2 新增：顶部五标签导航 / 配置页 / 帮助弹窗
+   （仅在原样式之上追加，不改动原有视觉）
+   ============================================================ */
+.topnav{
+  flex-shrink:0;display:flex;align-items:center;gap:4px;
+  padding:5px 26px;border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--bg) 82%,transparent);
+  backdrop-filter:blur(12px);
+}
+/* ---- 选项卡：照 hermes 的 nw-subnav-trigger ----
+   站点真身（CSS 原文）：
+     .nw-subnav-trigger{border:1px solid transparent;border-radius:.125rem;
+       padding:10px 12px;min-height:40px}
+     .nw-subnav-trigger-label:after{height:1px;bottom:-4px;left:0;right:0;
+       background:currentColor;transform:scaleX(0);transform-origin:0;
+       transition:transform .22s cubic-bezier(0,0,.2,1)}
+     :is(:hover,[aria-expanded=true]) .label:after{transform:scaleX(1)}
+     [aria-expanded=true]{border-color:currentColor;
+       background:color-mix(in srgb,currentColor 4%,transparent)}
+   也就是说：hover 只「长」出一条 1px 线（从左往右，靠 transform-origin:0 实现），
+   选中态才把透明边框点亮成实框 + 叠一层 4% 的同色底。
+   我们这边没有 aria-expanded，用 .active 顶替。 */
+.topnav .tab{
+  appearance:none;background:transparent;cursor:pointer;
+  font-family:var(--font-body);font-size:12px;letter-spacing:.08em;color:var(--ink-3);
+  border:1px solid transparent;border-radius:2px;
+  padding:8px 12px;min-height:32px;
+  transition:color .18s,border-color .18s,background-color .18s;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.topnav .tab .lbl{position:relative;display:block}
+.topnav .tab .lbl::after{
+  content:"";position:absolute;left:0;right:0;bottom:-4px;height:1px;
+  background:currentColor;transform:scaleX(0);transform-origin:0;
+  transition:transform .22s cubic-bezier(0,0,.2,1);
+}
+.topnav .tab:hover{color:var(--ink-2)}
+.topnav .tab:hover .lbl::after,
+.topnav .tab.active .lbl::after{transform:scaleX(1)}
+.topnav .tab.active{
+  color:var(--amber);border-color:currentColor;
+  background:color-mix(in srgb,currentColor 4%,transparent);
+}
+.topnav .tab .ico{opacity:.85}
+.topnav .tab.active .ico{opacity:1}
+
+/* 标签面板容器：撑满剩余高度，聊天面板内部再滚动 */
+.panels{flex:1;min-height:0;position:relative}
+.panel{display:none;height:100%;flex-direction:column;min-height:0}
+.panel.active{display:flex}
+
+/* 配置页（非聊天）：表单卡片，可滚动 */
+.cfg-scroll{flex:1;overflow-y:auto;padding:26px 28px 30px}
+.cfg-wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.cfg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.cfg-head h3{font-family:var(--font-display);font-weight:600;font-size:19px;letter-spacing:1px;color:var(--ink)}
+.cfg-head p{color:var(--ink-2);font-size:12.5px;margin-top:4px}
+.cfg-card{border:1px solid var(--line);border-radius:3px;background:var(--bg-3);padding:18px 20px;box-shadow:var(--shadow)}
+.cfg-card .field{margin-bottom:14px}
+.cfg-card .field:last-child{margin-bottom:0}
+.cfg-actions{display:flex;gap:10px;margin-top:4px}
+.cfg-actions .btn{width:auto;padding:9px 18px}
+.cfg-status{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--ink-2)}
+.cfg-status .st{display:flex;align-items:center;gap:6px}
+.cfg-status .dot-ok{width:7px;height:7px;border-radius:50%;background:var(--jade);outline:1px solid color-mix(in srgb,var(--jade) 45%,transparent);outline-offset:1px}
+.cfg-status .dot-no{width:7px;height:7px;border-radius:50%;background:var(--ink-3)}
+.cfg-status .st code{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-2);background:var(--bg-3);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.5px}
+.kb-metric{display:flex;gap:26px;flex-wrap:wrap;margin:2px 0 4px}
+.kb-metric .m b{font-family:var(--font-mono);font-size:22px;color:var(--amber)}
+.kb-metric .m span{display:block;font-family:var(--font-mono);font-size:10px;color:var(--ink-3);letter-spacing:.6px;margin-top:2px}
+.kb-list{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-2);line-height:1.9;max-height:230px;overflow:auto}
+
+/* 帮助按钮 + 弹窗 */
+.help-btn{
+  flex-shrink:0;width:34px;height:34px;border-radius:50%;
+  border:1px solid var(--card-line);background:var(--gold-soft);color:var(--amber);
+  cursor:pointer;font-size:15px;font-weight:700;transition:.2s;
+  display:grid;place-items:center;font-family:var(--font-body);
+}
+.help-btn:hover{background:var(--gold-fill);color:var(--gold-ink)}
+.help-modal{
+  position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(3px);padding:24px;
+}
+.help-modal.show{display:flex}
+.help-box{
+  max-width:640px;width:100%;max-height:82vh;overflow:auto;
+  background:var(--bg-2);border:1px solid var(--line);border-radius:3px;
+  box-shadow:var(--shadow);padding:26px 30px 28px;position:relative;
+}
+.help-box h4{font-family:var(--font-display);font-size:17px;letter-spacing:.6px;color:var(--ink);margin-bottom:4px}
+.help-box .h-sub{font-family:var(--font-mono);font-size:10px;letter-spacing:1.4px;color:var(--amber);text-transform:uppercase;margin-bottom:16px}
+.help-box h5{font-size:13px;color:var(--ink);margin:16px 0 6px;font-weight:700}
+.help-box p,.help-box li{font-size:12.8px;color:var(--ink-2);line-height:1.85}
+.help-box ul{margin:4px 0 0 18px}
+.help-box table{width:100%;border-collapse:collapse;margin-top:8px}
+.help-box th,.help-box td{border:1px solid var(--line);padding:6px 10px;font-size:12px;color:var(--ink-2);text-align:left;vertical-align:top}
+.help-box th{color:var(--ink);background:var(--bg-3);font-weight:600}
+.help-box b{color:var(--ink)}
+.help-box .hl{color:var(--jade)}
+.help-box .cy{color:var(--cyan)}
+.help-close{
+  position:absolute;top:16px;right:18px;width:28px;height:28px;border-radius:3px;
+  border:1px solid var(--line);background:transparent;color:var(--ink-3);cursor:pointer;font-size:18px;line-height:1;
+}
+.help-close:hover{color:var(--red);border-color:var(--red)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.spin-inline{display:inline-block;width:12px;height:12px;border:1.5px solid var(--line);border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- v3：知识库文件浏览器 + Markdown 编辑器 ---------- */
+.kb-editor{display:grid;grid-template-columns:236px 1fr;gap:16px;align-items:stretch;min-height:420px}
+@media (max-width:900px){.kb-editor{grid-template-columns:1fr}}
+.kb-tree{
+  border:1px solid var(--line);border-radius:3px;background:var(--bg-3);
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;box-shadow:var(--shadow);
+}
+.kb-tree-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:11px 13px;border-bottom:1px solid var(--line);background:var(--bg-2);
+}
+.kb-tree-head .tt{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.8px;color:var(--ink-2)}
+.kb-tree-head .acts{display:flex;gap:6px}
+.kb-icon-btn{
+  width:26px;height:26px;border-radius:3px;border:1px solid var(--line);background:transparent;
+  color:var(--ink-2);cursor:pointer;font-size:14px;line-height:1;display:grid;place-items:center;transition:.18s;
+}
+.kb-icon-btn:hover{border-color:var(--amber);color:var(--amber);background:var(--gold-soft)}
+.kb-tree-body{flex:1;overflow:auto;padding:7px 6px;min-height:180px;max-height:520px}
+.kb-node{user-select:none}
+.kb-row{
+  display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:3px;cursor:pointer;
+  font-size:12.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;
+}
+.kb-row:hover{background:var(--bg-4);color:var(--ink)}
+.kb-row{position:relative}
+.kb-row.active{background:var(--gold-soft);color:var(--amber);box-shadow:none}
+.kb-row.active::before{content://;position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--amber)}
+.kb-row .ic{font-size:11px;width:14px;text-align:center;flex:none;opacity:.85}
+.kb-row .nm{flex:1;overflow:hidden;text-overflow:ellipsis}
+.kb-row .del{
+  flex:none;opacity:0;border:none;background:transparent;color:var(--red);cursor:pointer;
+  font-size:13px;line-height:1;padding:0 3px;border-radius:3px;transition:.15s;
+}
+.kb-row:hover .del{opacity:1}
+.kb-row .del:hover{background:color-mix(in srgb,var(--red) 16%,transparent)}
+.kb-children{padding-left:13px;border-left:1px dashed var(--line-soft);margin-left:9px}
+.kb-empty{color:var(--ink-3);font-size:11.5px;padding:14px 10px;text-align:center;font-family:var(--font-mono)}
+.kb-editor-main{
+  border:1px solid var(--line);border-radius:3px;background:var(--bg-3);
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;box-shadow:var(--shadow);
+}
+.kb-filebar{
+  display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--bg-2);
+}
+.kb-filebar .path{
+  flex:1;font-family:var(--font-mono);font-size:11px;color:var(--ink-2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.kb-filebar .path b{color:var(--amber)}
+.kb-filebar .dirty{color:var(--cyan);font-family:var(--font-mono);font-size:10px}
+.kb-textarea{
+  flex:1;width:100%;min-height:330px;resize:vertical;border:none;outline:none;background:transparent;
+  color:var(--ink);font-family:var(--font-mono);font-size:12.5px;line-height:1.85;padding:16px 18px;
+}
+.kb-textarea::placeholder{color:var(--ink-3)}
+.kb-foot{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 13px;
+  border-top:1px solid var(--line);background:var(--bg-2);flex-wrap:wrap;
+}
+.kb-foot .meta{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3)}
+.kb-foot .acts{display:flex;gap:9px}
+.kb-foot .btn{width:auto;padding:8px 15px;font-size:12px}
+/* 「有改动待录入」提示条：编辑/新建 md 后出现，一键增量录入（省 token） */
+.kb-pending{
+  display:none;align-items:center;gap:10px;padding:9px 13px;margin:0 0 2px;
+  background:var(--gold-soft);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  font-size:12px;color:var(--ink-2);
+}
+.kb-pending.show{display:flex}
+.kb-pending .dot{
+  width:7px;height:7px;border-radius:50%;background:var(--amber);flex:none;
+  box-shadow:none;animation:kbPulse 1.8s infinite;
+}
+@keyframes kbPulse{0%,100%{opacity:1}50%{opacity:.45}}
+.kb-pending .txt{flex:1;line-height:1.65;font-size:12px}
+.kb-pending .txt b{color:var(--amber);font-family:var(--font-mono)}
+.kb-pending .txt em{display:block;font-style:normal;color:var(--ink-3);font-size:10.5px;margin-top:2px}
+.kb-pending .btn{
+  width:auto;flex:none;padding:6px 13px;font-size:11.5px;
+  background:var(--gold-fill);border-color:var(--gold-fill);color:var(--gold-ink);
+}
+.kb-pending .btn:hover{filter:brightness(1.08)}
+.kb-pending .btn:disabled{opacity:.6;cursor:default}
+/* ---------- 个人原则（硬约束）卡片 ---------- */
+.pr-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:10px}
+.pr-head h4{margin:0 0 6px;font-size:14px;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pr-tag{
+  font-family:var(--font-mono);font-size:9.5px;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--amber);background:var(--gold-soft);border:1px solid var(--card-line);
+  padding:1px 7px;border-radius:2px;font-weight:600;
+}
+.pr-head p{margin:0;font-size:11.5px;line-height:1.75;color:var(--ink-2)}
+.pr-textarea{
+  width:100%;min-height:190px;max-height:360px;resize:vertical;
+  background:var(--bg-3);border:1px solid var(--line);border-radius:3px;
+  padding:12px 14px;color:var(--ink);font-size:12.5px;line-height:1.75;
+  font-family:var(--font-mono);outline:none;
+}
+.pr-textarea:focus{border-color:var(--amber)}
+.pr-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px}
+.pr-foot .meta{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3)}
+.pr-foot .acts{display:flex;gap:8px}
+.pr-foot .btn{width:auto;min-width:96px;padding:8px 18px;font-size:12.5px}
+.kb-actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+/* 弹窗底部按钮：.btn 默认 width:100%，在 flex 行里会各自占满导致换行，这里改回自适应 */
+.kb-actions-row .btn{width:auto;min-width:96px;padding:8px 18px;font-size:12.5px}
+.kb-name-input{
+  width:100%;background:var(--bg-2);border:1px solid var(--line);border-radius:3px;color:var(--ink);
+  padding:9px 12px;font-size:13px;font-family:var(--font-mono);margin-top:10px;
+}
+.kb-name-input:focus{outline:none;border-color:var(--amber);box-shadow:none;outline:1px solid var(--amber);outline-offset:2px}
+
+/* ---------- 新建弹窗：文件夹下拉 + 路径预览 ---------- */
+#promptFolderWrap{margin-top:10px}
+#promptFolderWrap .kb-name-input{margin-top:6px}
+.kb-select-wrap{position:relative}
+.kb-select-wrap .kb-name-input{padding-right:34px}
+.kb-select-caret{
+  position:absolute;right:12px;top:calc(50% + 3px);transform:translateY(-50%);
+  color:var(--amber);font-size:12px;pointer-events:none;opacity:.85;
+}
+.kb-field-label{
+  display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--ink-3);margin-top:12px;
+}
+.kb-field-tip{font-size:10px;letter-spacing:.4px;text-transform:none;color:var(--ink-3);opacity:.75}
+.kbf-preview{
+  margin-top:12px;padding:8px 11px;border-radius:3px;
+  background:var(--bg-3);border:1px dashed var(--line);
+  font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);
+  word-break:break-all;line-height:1.6;
+}
+.kbf-preview b{color:var(--amber);font-weight:600}
+.kbf-preview .dir{color:var(--cyan)}
+
+/* ---------- v4：聊天框 @ 引用知识库 ---------- */
+.composer-inner{position:relative}
+.mention-pop{
+  position:absolute;left:0;right:0;bottom:calc(100% + 8px);
+  max-height:300px;overflow:auto;z-index:60;
+  border:1px solid var(--line);border-radius:3px;background:var(--bg-2);
+  padding:6px;
+  display:none;
+}
+.mention-pop.show{display:block;animation:mpIn .14s ease-out}
+@keyframes mpIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.mention-pop .mp-head{
+  padding:6px 10px;font-family:var(--font-mono);font-size:10px;color:var(--ink-3);
+  letter-spacing:.6px;border-bottom:1px solid var(--line-soft);margin-bottom:4px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.mention-pop .mp-head em{font-style:normal;color:var(--ink-3)}
+.mp-item{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:3px;cursor:pointer;
+  font-size:12.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;
+}
+.mp-item:hover,.mp-item.active{background:var(--gold-soft);color:var(--amber)}
+.mp-item .ic{flex:none;font-size:12px;opacity:.9}
+.mp-item .nm{flex:1;overflow:hidden;text-overflow:ellipsis}
+.mp-item .nm b{color:var(--ink);font-weight:600}
+.mp-item .nm i{font-style:normal;color:var(--ink-3);font-family:var(--font-mono);font-size:10px}
+.mp-item .kind{flex:none;font-family:var(--font-mono);font-size:9px;color:var(--ink-3);border:1px solid var(--line);border-radius:3px;padding:1px 5px}
+.mp-item.dir .kind{color:var(--cyan);border-color:var(--cyan-line)}
+.mp-empty{padding:14px 10px;text-align:center;color:var(--ink-3);font-size:11.5px;font-family:var(--font-mono)}
+/* 引用 chips（输入框上方） */
+.mention-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.mention-chips:empty{display:none}
+.mchip{
+  display:inline-flex;align-items:center;gap:6px;max-width:260px;
+  border:1px solid var(--cyan-line);background:var(--cyan-soft);color:var(--cyan);
+  border-radius:3px;padding:3px 8px;font-family:var(--font-mono);font-size:10.5px;
+}
+.mchip .x{cursor:pointer;opacity:.7;font-size:13px;line-height:1}
+.mchip .x:hover{opacity:1;color:var(--red)}
+.mchip .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 未指定 @ 范围时的默认标识：虚线低调，表示「这次翻的是整个知识库」 */
+.mchip.all{
+  border-style:dashed;border-color:var(--line);background:transparent;
+  color:var(--ink-3);cursor:default;
+}
+</style>
+</head>
+<body>
+  <div class="etch" aria-hidden="true"></div>
+<!-- ===== 图标精灵：全部内联几何图形，零 emoji、零外部图片 ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.6 12S6.2 6.4 12 6.4 21.4 12 21.4 12 17.8 17.6 12 17.6 2.6 12 2.6 12Z"/><circle cx="12" cy="12" r="2.7"/></symbol>
+    <symbol id="i-wheel" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="3.4"/><path d="M12 3.4v5.2M12 15.4v5.2M3.4 12h5.2M15.4 12h5.2"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M3.4 5.4c2.7-1.2 5.6-1.1 8.6.7v13.2c-3-1.8-5.9-1.9-8.6-.7Z"/><path d="M20.6 5.4c-2.7-1.2-5.6-1.1-8.6.7v13.2c3-1.8 5.9-1.9 8.6-.7Z"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M15.4 3.4a9 9 0 1 0 5.2 14.9A9.6 9.6 0 0 1 15.4 3.4Z"/></symbol>
+    <symbol id="i-mirror" viewBox="0 0 24 24"><circle cx="10.4" cy="10.4" r="6.6"/><path d="M10.4 6.2v2.2M10.4 12.4v2.2M6.2 10.4h2.2M12.4 10.4h2.2"/><path d="M15.2 15.2 21 21"/></symbol>
+    <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M15.7 8.3 13.5 13.5 8.3 15.7 10.5 10.5Z"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3.2h7.2L18.6 8.6V20.8H6Z"/><path d="M13.2 3.2v5.4h5.4"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.2 6.6h6l1.8 2.3h11.8v12.5H3.2Z"/></symbol>
+    <symbol id="i-folder-open" viewBox="0 0 24 24"><path d="M3.2 19.4V6.6h6l1.8 2.3h11.8v3.4"/><path d="M3.2 19.4 5.8 12.3h17L20.2 19.4Z"/></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 3.4v11.8"/><path d="M6.6 10.4 12 15.9l5.4-5.5"/><path d="M4.4 20.6h15.2"/></symbol>
+    <symbol id="i-star4" viewBox="0 0 24 24"><path d="M12 2.8 13.9 10.1 21.2 12 13.9 13.9 12 21.2 10.1 13.9 2.8 12 10.1 10.1Z"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.8"/><rect x="8.6" y="8.6" width="6.8" height="6.8" rx="1"/></symbol>
+    <symbol id="i-clip" viewBox="0 0 24 24"><path d="M15.6 7.4 8.3 14.7a2.7 2.7 0 0 0 3.8 3.8l7.7-7.7a4.7 4.7 0 0 0-6.6-6.6L5.6 11.8"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.4 21.6 20.2H2.4Z"/><path d="M12 9.4v4.4"/><circle cx="12" cy="17.1" r=".95" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.8"/><path d="M9.5 9.5a2.6 2.6 0 1 1 3.6 2.4c-.7.35-1.1.95-1.1 1.75v.45"/><circle cx="12" cy="17.1" r=".95" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="1.6"/></symbol>
+    <symbol id="i-quote" viewBox="0 0 24 24"><path d="M7.2 16.8V10a3.6 3.6 0 0 1 3.6-3.6"/><path d="M14.4 16.8V10A3.6 3.6 0 0 1 18 6.4"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.2" r="3.7"/><path d="M4.8 20.4c0-4 3.2-6.5 7.2-6.5s7.2 2.5 7.2 6.5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21.4s6.5-6.6 6.5-11.1a6.5 6.5 0 1 0-13 0C5.5 14.8 12 21.4 12 21.4Z"/><circle cx="12" cy="10.2" r="2.3"/></symbol>
+    <symbol id="i-cross" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.4"/><path d="M12 2.6v4.2M12 17.2v4.2M2.6 12h4.2M17.2 12h4.2"/></symbol>
+  </defs>
+</svg>
+<div id="app">
+  <!-- ===================== SIDEBAR（仅保留对话相关） ===================== -->
+  <aside>
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"><span><svg class="ico ico-sm"><use href="#i-eye"/></svg></span></div>
+      <div>
+        <h1>问己</h1>
+        <small>Personal Oracle</small>
+      </div>
+    </div>
+
+    <div class="conv-panel">
+      <button class="btn btn-primary new-chat" id="newChatBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        新建对话
+      </button>
+      <div class="conv-list" id="convList"></div>
+      <div class="conv-export">
+        <button class="ce-btn" id="exportCurChatBtn" title="导出当前会话"><svg class="ico"><use href="#i-arrow-down"/></svg>本次</button>
+        <button class="ce-btn" id="exportAllChatBtn" title="导出全部本地聊天记录"><svg class="ico"><use href="#i-arrow-down"/></svg>全部</button>
+        <button class="ce-btn ce-danger" id="clearChatBtn" title="物理清空本地聊天记录">清空</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <main>
+    <header>
+      <div class="h-title">
+        <h2>问己 · 个人决策助手</h2>
+      </div>
+    </header>
+
+    <!-- 顶部五标签导航（下划线只跟着文字走，见 .topnav .tab .lbl::after） -->
+    <nav class="topnav" id="topnav">
+      <button class="tab active" data-tab="chat"><svg class="ico"><use href="#i-eye"/></svg><span class="lbl">对话</span></button>
+      <button class="tab" data-tab="api"><svg class="ico"><use href="#i-wheel"/></svg><span class="lbl">API 配置</span></button>
+      <button class="tab" data-tab="kb"><svg class="ico"><use href="#i-book"/></svg><span class="lbl">知识库配置</span></button>
+      <button class="tab" data-tab="analysis"><svg class="ico"><use href="#i-moon"/></svg><span class="lbl">日记分析</span></button>
+      <button class="tab" data-tab="retrieve"><svg class="ico"><use href="#i-mirror"/></svg><span class="lbl">检索与回退</span></button>
+    </nav>
+
+    <div class="panels">
+      <!-- ---------- 面板 1：对话 ---------- -->
+      <section class="panel active" data-panel="chat">
+        <div id="chatScroll">
+          <div id="welcome">
+            <h3 data-tw>你的每篇记录，<br>都该参与你的<em>每个决定</em>。</h3>
+            <p class="lead">日记、网课、工作与学习记录等零散资料统一存入本地，按句子边界切分。提问时先判断是否检索，召回片段经 DeepSeek 批量打分；本地证据不足时先改写重试，仍不足再让 Tavily 搜索网络——本地与网络来源分色标注，都没有时诚实告知。</p>
+            <div class="w-flow">
+              <div class="w-card">
+                <div class="num">01</div>
+                <h4>意图路由</h4>
+                <p>判断问题是否需要检索：含「我想/我要」这类第一人称意愿的一律先翻本地记录；纯知识、闲聊才直接作答。</p>
+              </div>
+              <div class="w-card">
+                <div class="num">02</div>
+                <h4>DeepSeek 筛选 · 改写重试</h4>
+                <p>Top-N 片段逐条打 1–10 分，只留高分证据；一条都没过阈值才自动改写查询、重新检索，最多 2 轮。</p>
+              </div>
+              <div class="w-card cyan">
+                <div class="num">03</div>
+                <h4>网络兜底 · 双源溯源</h4>
+                <p>改写后仍不足，Tavily 只带着问题本身搜索；本地亮紫、网络灰紫分色，都没有就明说。</p>
+              </div>
+            </div>
+          </div>
+          <div id="thread"></div>
+        </div>
+
+        <div id="composer">
+          <div class="composer-inner">
+            <div class="mention-chips" id="mentionChips"></div>
+            <div class="inputbar">
+              <input id="chatInput" type="text" placeholder="问一个需要翻记录的问题…　输入 @ 可指定知识库文件范围　（Enter 发送）" autocomplete="off">
+              <button class="send-btn" id="sendBtn" title="发送">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+              </button>
+            </div>
+            <!-- @ 引用浮层 -->
+            <div class="mention-pop" id="mentionPop">
+              <div class="mp-head"><span>引用知识库范围</span><em><kbd><i class="gl gl-arrow up"></i></kbd><kbd><i class="gl gl-arrow down"></i></kbd> 选择 · <kbd>Enter</kbd> 确认 · <kbd>Esc</kbd> 取消</em></div>
+              <div id="mentionList"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- 面板 2：API 配置 ---------- -->
+      <section class="panel" data-panel="api">
+        <div class="cfg-scroll">
+          <div class="cfg-wrap">
+            <div class="cfg-head">
+              <div>
+                <h3>API 配置</h3>
+                <p data-tw>填入三把「钥匙」，点保存后写入 <b>.env</b> 并立即生效，无需重启服务。</p>
+              </div>
+              <button class="help-btn" data-help="api" title="查看说明">?</button>
+            </div>
+            <div class="cfg-card">
+              <div class="field">
+                <label>DashScope API Key <span class="mono">阿里云 · 嵌入</span></label>
+                <input type="password" id="keyDashscope" placeholder="sk-…（留空则不修改）" autocomplete="off">
+              </div>
+              <div class="field">
+                <label>DeepSeek API Key <span class="mono">意图 / 打分 / 生成</span></label>
+                <input type="password" id="keyDeepseek" placeholder="sk-…（留空则不修改）" autocomplete="off">
+              </div>
+              <div class="field">
+                <label>Tavily API Key <span class="mono" style="color:var(--cyan)">网络回退</span></label>
+                <input type="password" id="keyTavily" placeholder="tvly-…（留空则不修改）" autocomplete="off">
+              </div>
+              <div class="cfg-actions">
+                <button class="btn btn-primary" id="saveCfgBtn">保存配置</button>
+                <button class="btn btn-ghost" id="refreshCfgBtn">刷新状态</button>
+              </div>
+              <div class="cfg-status" id="cfgStatus">
+                <span class="st"><span class="dot-no"></span>加载中…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- 面板 3：知识库配置 ---------- -->
+      <section class="panel" data-panel="kb">
+        <div class="cfg-scroll">
+          <div class="cfg-wrap" style="max-width:1040px">
+            <div class="cfg-head">
+              <div>
+                <h3>知识库配置</h3>
+                <p data-tw>在这里直接管理 <b>docs/</b>：浏览文件夹、新建 / 编辑 / 删除 Markdown。改动后编辑器上方会出现<b>「待录入」提示条</b>，点一下即可增量录入，只嵌入变化的片段。</p>
+              </div>
+              <button class="help-btn" data-help="kb" title="查看说明">?</button>
+            </div>
+
+            <div class="cfg-card">
+              <div class="kb-metric" id="kbMetric">
+                <div class="m"><b id="kbFiles">–</b><span>docs/ 文件数</span></div>
+                <div class="m"><b id="kbChunks">–</b><span>已入库片段</span></div>
+                <div class="m"><b id="kbDirs">–</b><span>文件夹数</span></div>
+              </div>
+              <div class="cfg-actions">
+                <button class="btn btn-primary" id="reloadKbBtn">增量录入（省 token）</button>
+                <button class="btn btn-ghost" id="rebuildKbBtn">强制重建</button>
+                <button class="btn btn-ghost" id="refreshKbBtn">刷新</button>
+              </div>
+            </div>
+
+            <!-- 个人原则（硬约束）：独立文件 memory/principles.md，不进向量库、每次回答无条件注入 -->
+            <div class="cfg-card">
+              <div class="pr-head">
+                <div>
+                  <h4><svg class="ico"><use href="#i-compass"/></svg> 个人原则 <span class="pr-tag">每次回答强制带入</span></h4>
+                  <p>写下你「无论如何都要守住」的底线，例如「考研必须在不脱产、尽量有积蓄、不拖累身体的前提下进行」。<br>
+                     它<b>不参与检索</b>，而是每次提问都被无条件注入，回答不得与之相悖。只写约束、不写日记，越短越有力。</p>
+                </div>
+                <button class="help-btn" data-help="principles" title="查看说明">?</button>
+              </div>
+              <textarea class="pr-textarea" id="prContent" placeholder="加载中…" spellcheck="false"></textarea>
+              <div class="pr-foot">
+                <span class="meta" id="prMeta">—</span>
+                <div class="acts">
+                  <button class="btn btn-primary" id="prSaveBtn">保存原则</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 文件浏览器 + 编辑器 -->
+            <div class="kb-editor">
+              <!-- 左：目录树 -->
+              <div class="kb-tree">
+                <div class="kb-tree-head">
+                  <span class="tt">docs/</span>
+                  <div class="acts">
+                    <button class="kb-icon-btn" id="kbNewFileBtn" title="新建文件"><svg class="ico"><use href="#i-file"/></svg></button>
+                    <button class="kb-icon-btn" id="kbNewDirBtn" title="新建文件夹"><svg class="ico"><use href="#i-folder"/></svg></button>
+                    <button class="kb-icon-btn" id="kbTreeRefreshBtn" title="刷新目录树">⟳</button>
+                  </div>
+                </div>
+                <div class="kb-tree-body" id="kbTreeBody">
+                  <div class="kb-empty">加载中…</div>
+                </div>
+              </div>
+
+              <!-- 右：编辑器 -->
+              <div class="kb-editor-main">
+                <div class="kb-filebar">
+                  <span class="path" id="kbCurPath">未选择文件</span>
+                  <span class="dirty" id="kbDirty" style="display:none"><i class="gl gl-dot"></i>未保存</span>
+                </div>
+                <!-- 编辑/新建 md 后出现：提示可做「增量录入」，只嵌入变化片段、省 token -->
+                <div class="kb-pending" id="kbPending">
+                  <span class="dot"></span>
+                  <span class="txt" id="kbPendingTxt">有文件改动尚未录入索引</span>
+                  <button class="btn" id="kbPendingBtn">立即增量录入</button>
+                </div>
+                <textarea class="kb-textarea" id="kbContent" placeholder="从左侧选择一个文件开始编辑，或点左上角「新建文件」建一个 Markdown…" spellcheck="false" disabled></textarea>
+                <div class="kb-foot">
+                  <span class="meta" id="kbMeta">—</span>
+                  <div class="acts">
+                    <button class="btn btn-ghost" id="kbSaveBtn" disabled>保存</button>
+                    <button class="btn btn-ghost" id="kbDeleteBtn" disabled>删除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 导出：日记 / 材料。导出物只落 exports/，不进 docs/、不进向量库 -->
+            <div class="cfg-card">
+              <div class="cfg-head" style="padding:0;margin-bottom:4px">
+                <div>
+                  <h4 style="margin:0"><svg class="ico"><use href="#i-arrow-down"/></svg> 导出记录</h4>
+                  <p>把 docs/ 里的记录导出为 <b>ZIP</b> 或 <b>合并 Markdown</b>。文件落在 <b>exports/</b>（不进 docs/，不会被下次录入嵌进向量库）；<b>private: true 默认排除</b>。</p>
+                </div>
+              </div>
+              <div class="ex-form">
+                <div class="ex-field">
+                  <label>范围（按知识库文件夹）</label>
+                  <select id="exType">
+                    <option value="">全部（整个知识库）</option>
+                  </select>
+                </div>
+                <div class="ex-field">
+                  <label>格式</label>
+                  <select id="exFmt">
+                    <option value="zip">ZIP（保留目录，原样文件）</option>
+                    <option value="merged">合并 Markdown（按日期分节）</option>
+                  </select>
+                </div>
+                <div class="ex-field">
+                  <label>起始日期（可空）</label>
+                  <input type="date" id="exFrom">
+                </div>
+                <div class="ex-field">
+                  <label>截止日期（可空）</label>
+                  <input type="date" id="exTo">
+                </div>
+              </div>
+              <div class="an-row">
+                <label class="an-check"><input type="checkbox" id="exIncludePrivate"> 包含私密记录（private: true）</label>
+                <span class="sep"></span>
+                <button class="btn btn-ghost" id="exPreviewBtn">预览</button>
+                <button class="btn btn-primary" id="exDownloadBtn">下载</button>
+              </div>
+              <div class="ex-preview" id="exPreview">尚未预览。ZIP 原样导出整篇文件；合并版在有时间区间时只导出区间内的日记天。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- 面板 4：日记分析 ---------- -->
+      <section class="panel" data-panel="analysis">
+        <div class="cfg-scroll">
+          <div class="cfg-wrap" style="max-width:1080px">
+            <div class="cfg-head">
+              <div>
+                <h3><svg class="ico"><use href="#i-moon"/></svg> 日记分析</h3>
+                <p data-tw>docs/ 下的每篇记录（日记、聊天记录、笔记、文章、清单）生成一张结构化「日记卡」：摘要、情绪/能量打分、意图与待办、金句、与个人原则的冲突。卡片按<b>内容指纹本地缓存</b>，正文没变不重算；周期总结只在你点「生成」时才调用模型。</p>
+              </div>
+              <button class="help-btn" data-help="analysis" title="查看说明">?</button>
+            </div>
+
+            <!-- 单篇卡生成 -->
+            <div class="cfg-card">
+              <div class="an-grid">
+                <div class="an-stat"><b id="anTotal">–</b><span>记录条目</span></div>
+                <div class="an-stat"><b class="jade" id="anCached">–</b><span>已生成卡片</span></div>
+                <div class="an-stat"><b class="amber" id="anPending">–</b><span>待生成</span></div>
+                <div class="an-stat"><b class="cyan" id="anUndated">–</b><span>其它（无日期，按文件成卡）</span></div>
+              </div>
+              <div class="an-row">
+                <label class="an-check"><input type="checkbox" id="anIncludePrivate"> 包含 <b>private: true</b> 的私密记录</label>
+                <span class="sep"></span>
+                <button class="btn btn-primary" id="anGenerateBtn"><svg class="ico"><use href="#i-star4"/></svg>生成 / 补齐日记卡</button>
+                <button class="btn btn-ghost" id="anStopBtn" disabled title="随时可点：立即停止派发新任务，正在跑的这一条结束后收手"><svg class="ico"><use href="#i-stop"/></svg>终止生成</button>
+                <button class="btn btn-ghost" id="anRefreshBtn">刷新</button>
+              </div>
+              <div class="an-progress" id="anProgress"><i id="anProgressBar"></i></div>
+              <div class="meta" id="anGenMsg" style="margin-top:6px">每张卡片一次 DeepSeek 调用（输出 JSON，失败自动降级为正则抽取）；将只发送对应记录正文，不发送其他文件。</div>
+            </div>
+
+            <!-- 周期聚合 -->
+            <div class="cfg-card">
+              <h4 style="margin:0 0 4px">周期回顾</h4>
+              <div class="an-row" style="margin:10px 0">
+                <button class="an-chip" data-range="week">本周</button>
+                <button class="an-chip" data-range="month">本月</button>
+                <button class="an-chip" data-range="quarter">本季</button>
+                <button class="an-chip" data-range="year">全年</button>
+                <button class="an-chip active" data-range="all">全部</button>
+                <button class="an-chip" data-range="other"><svg class="ico"><use href="#i-clip"/></svg>其它</button>
+                <input type="date" id="anFrom" class="an-date">
+                <span class="meta">至</span>
+                <input type="date" id="anTo" class="an-date">
+                <span class="sep"></span>
+                <button class="btn btn-primary" id="anSummaryBtn">生成周期总结</button>
+                <button class="btn btn-ghost" id="anSummaryStopBtn" disabled title="随时可点：立即停止分块总结，不会生成报告"><svg class="ico"><use href="#i-stop"/></svg>终止生成</button>
+                <button class="btn btn-ghost" id="anDownloadBtn" style="display:none"><svg class="ico"><use href="#i-arrow-down"/></svg>下载报告</button>
+              </div>
+              <div class="meta" id="anSummaryMsg">先选区间再点「生成」。模型只读取区间内已缓存的日记卡（摘要 + 金句），不读取全文；结论带日期引用。</div>
+              <div class="an-progress" id="anSummaryProgress"><i></i></div>
+              <div id="anSummary" style="margin-top:12px"></div>
+            </div>
+
+            <!-- 图表 -->
+            <div class="cfg-card">
+              <h4 style="margin:0 0 6px">情绪 / 能量曲线与主题</h4>
+              <div id="anCharts"></div>
+            </div>
+
+            <!-- 卡片列表 -->
+            <div class="cfg-card">
+              <h4 style="margin:0 0 6px">日记卡</h4>
+              <div id="anCards"><div class="an-empty">还没有卡片，点上方「生成 / 补齐日记卡」开始。</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- 面板 5：导出（入口在知识库配置页，此处保留顺序） ---------- -->
+
+      <!-- ---------- 面板 6：检索与回退 ---------- -->
+      <section class="panel" data-panel="retrieve">
+        <div class="cfg-scroll">
+          <div class="cfg-wrap">
+            <div class="cfg-head">
+              <div>
+                <h3>检索与回退</h3>
+                <p data-tw>调整「翻找资料」的力度——改完即用，作用于后续每一次提问。</p>
+              </div>
+              <button class="help-btn" data-help="retrieve" title="查看说明">?</button>
+            </div>
+            <div class="cfg-card">
+              <div class="field">
+                <label>召回数量 top_k <span class="mono" id="topkVal">20</span></label>
+                <input type="range" id="topk" min="5" max="50" value="20">
+                <div class="scale-ticks"><span>5</span><span>20</span><span>50</span></div>
+              </div>
+              <div class="field">
+                <label>重排入选阈值 <span class="mono">score ≥ <span id="thVal">7</span></span></label>
+                <input type="range" id="threshold" min="1" max="10" value="7">
+                <div class="scale-ticks"><span>1 宽松</span><span>7</span><span>10 严格</span></div>
+              </div>
+              <div class="switch-row">
+                <div class="txt">启用 DeepSeek 重排<em>关闭后召回片段全部送入生成</em></div>
+                <label class="switch">
+                  <input type="checkbox" id="jevToggle" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="switch-row">
+                <div class="txt">启用网络搜索回退<em class="tag-cyan">改写 2 轮仍不足 · 转 Tavily</em></div>
+                <label class="switch cyan">
+                  <input type="checkbox" id="webToggle" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+
+<!-- ===================== 帮助弹窗（三份文案） ===================== -->
+<div class="help-modal" id="helpModal">
+  <div class="help-box">
+    <button class="help-close" id="helpClose" title="关闭">×</button>
+    <div id="helpContent"></div>
+  </div>
+</div>
+
+<!-- ===================== 输入弹窗（新建文件/文件夹） ===================== -->
+<div class="help-modal" id="promptModal">
+  <div class="help-box" style="width:min(460px,92vw)">
+    <button class="help-close" id="promptClose" title="关闭">×</button>
+    <h4 id="promptTitle" style="margin:0 0 4px">新建</h4>
+    <div class="h-sub" id="promptHint" style="color:var(--ink-3);font-size:12px;margin-bottom:4px"></div>
+
+    <!-- 文件夹选择：下拉列出已有文件夹并自动填充，也可直接输入新的 -->
+    <div id="promptFolderWrap" style="display:none">
+      <div class="kb-field-label">
+        <span id="promptFolderLabel">文件夹</span>
+        <span class="kb-field-tip">点输入框选已有文件夹，或直接输入新名字</span>
+      </div>
+      <div class="kb-select-wrap">
+        <input type="text" class="kb-name-input" id="promptFolder" list="kbFolderList"
+               placeholder="（docs 根目录）" autocomplete="off" spellcheck="false">
+        <span class="kb-select-caret"><i class="gl gl-caret"></i></span>
+      </div>
+      <datalist id="kbFolderList"></datalist>
+    </div>
+
+    <div class="kb-field-label" id="promptNameLabel">文件名</div>
+    <input type="text" class="kb-name-input" id="promptInput" placeholder="" autocomplete="off" spellcheck="false">
+
+    <div class="kbf-preview" id="promptPreview"></div>
+
+    <div class="kb-actions-row" style="justify-content:flex-end">
+      <button class="btn btn-ghost" id="promptCancel">取消</button>
+      <button class="btn btn-primary" id="promptOk">确定</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+/* ============================================================
+   问己 AskSelf · 前端主页面（单文件，对接本地 API：src/api.py）
+   数据来源：POST /api/chat，后端入口 run_agent(...)
+   无构建步骤、无第三方框架：直接由 api.py 以同一端口托管
+   ============================================================ */
+const $ = (s, root = document) => (root || document).querySelector(s);
+
+/* ===== 图标常量：JS 里拼接 HTML 时统一用这里，禁止直接写 emoji ===== */
+const _ico = (n, extra = '') => `<svg class="ico${extra}"><use href="#i-${n}"/></svg>`;
+const ICON = {
+  eye: _ico('eye'), wheel: _ico('wheel'), book: _ico('book'), moon: _ico('moon'),
+  mirror: _ico('mirror'), compass: _ico('compass'), file: _ico('file'),
+  folder: _ico('folder'), folderOpen: _ico('folder-open'), down: _ico('arrow-down'),
+  star: _ico('star4'), stop: _ico('stop'), clip: _ico('clip'), warn: _ico('warn'),
+  help: _ico('help'), box: _ico('box'), quote: _ico('quote'), user: _ico('user'),
+  pin: _ico('pin'), cross: _ico('cross'),
+  sm: (n) => _ico(n, ' ico-sm'),
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const now = () => new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+const escapeHTML = s => String(s == null ? '' : s).replace(/[&<>"']/g, m =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+const thread = $('#thread'), welcome = $('#welcome'), scroll = $('#chatScroll');
+const state = { topK: 20, threshold: 7, useJev: true, useWeb: true, busy: false, mentions: [] };
+const API = '/api/chat';
+
+/* ---------------- 通用 UI ---------------- */
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<span class="td"><svg class="ico ico-sm"><use href="#i-star4"/></svg></span><span>${escapeHTML(msg)}</span>`;
+  $('#toast').appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2800);
+}
+function scrollDown() { scroll.scrollTop = scroll.scrollHeight; }
+function rangeFill(el) {
+  const p = (el.value - el.min) / (el.max - el.min) * 100;
+  el.style.background = `linear-gradient(90deg,var(--amber) ${p}%,var(--line) ${p}%)`;
+}
+
+/* ---------------- 侧栏设置 ---------------- */
+$('#topk').addEventListener('input', e => { state.topK = +e.target.value; $('#topkVal').textContent = state.topK; rangeFill(e.target); });
+$('#threshold').addEventListener('input', e => { state.threshold = +e.target.value; $('#thVal').textContent = state.threshold; rangeFill(e.target); });
+$('#jevToggle').addEventListener('change', e => { state.useJev = e.target.checked; toast(state.useJev ? '证据重排已开启' : '证据重排已关闭：召回片段将全部送入生成'); });
+$('#webToggle').addEventListener('change', e => { state.useWeb = e.target.checked; toast(state.useWeb ? '网络搜索回退已开启（Tavily 兜底）' : '网络回退已关闭：本地不足时将直接告知'); });
+rangeFill($('#topk')); rangeFill($('#threshold'));
+
+/* ---------------- 主题：只有暗色 ----------------
+   白天模式已按需求整体移除（2026-10-23）：data-theme 固定为 dark，
+   不跟随系统 prefers-color-scheme，也不再读 localStorage / ?theme=。
+   留 applyTheme() 一个空壳只为兼容外部可能的调用。 */
+function applyTheme() {
+  document.documentElement.dataset.theme = 'dark';
+}
+
+/* ============================================================
+   会话管理：新建 / 历史 / 本地持久化
+   ============================================================ */
+const CONV_KEY = 'askconv:real:v1';
+let conversations = [];
+let currentId = null;
+
+const uid = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const curConv = () => conversations.find(c => c.id === currentId) || null;
+const fmtTime = ts => new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+function captureCurrent() {
+  const c = curConv();
+  if (c) { c.threadHTML = thread.innerHTML; c.welcomeHidden = welcome.classList.contains('hidden'); }
+}
+function persist() {
+  captureCurrent();
+  try { localStorage.setItem(CONV_KEY, JSON.stringify({ conversations, currentId })); } catch (e) { }
+}
+function renderConvList() {
+  const box = $('#convList'); if (!box) return;
+  if (!conversations.length) { box.innerHTML = '<div class="conv-empty">还没有会话，点上方「新建对话」开始</div>'; return; }
+  box.innerHTML = conversations.map(c => `
+    <div class="conv-item${c.id === currentId ? ' active' : ''}" data-id="${c.id}">
+      <div class="ci-main">
+        <span class="ci-title">${escapeHTML(c.title || '新对话')}</span>
+        <span class="ci-time">${fmtTime(c.ts)}</span>
+      </div>
+      <button class="ci-del" title="删除会话" data-del="${c.id}">×</button>
+    </div>`).join('');
+}
+function restoreView(c) {
+  thread.innerHTML = c.threadHTML || '';
+  welcome.classList.toggle('hidden', !!c.welcomeHidden);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+function selectConv(id) {
+  if (state.busy) { toast('回答生成中，请稍候再切换'); return; }
+  if (id === currentId) return;
+  captureCurrent();
+  const c = conversations.find(x => x.id === id); if (!c) return;
+  currentId = id; restoreView(c); renderConvList(); persist();
+}
+function ensureConv() {
+  if (curConv()) return;
+  const c = { id: uid(), title: '新对话', threadHTML: '', welcomeHidden: false, ts: Date.now() };
+  conversations.unshift(c); currentId = c.id; renderConvList();
+}
+function newConv() {
+  if (state.busy) { toast('回答生成中，请稍候'); return; }
+  captureCurrent();
+  const c = { id: uid(), title: '新对话', threadHTML: '', welcomeHidden: false, ts: Date.now() };
+  conversations.unshift(c); currentId = c.id;
+  thread.innerHTML = ''; welcome.classList.remove('hidden');
+  renderConvList(); scroll.scrollTop = 0; persist();
+}
+function deleteConv(id) {
+  if (state.busy) { toast('回答生成中，请稍候'); return; }
+  const idx = conversations.findIndex(x => x.id === id); if (idx < 0) return;
+  conversations.splice(idx, 1);
+  if (id === currentId) {
+    const next = conversations[0];
+    if (next) { currentId = next.id; restoreView(next); }
+    else { currentId = null; thread.innerHTML = ''; welcome.classList.remove('hidden'); }
+  }
+  if (!conversations.length) {
+    const c = { id: uid(), title: '新对话', threadHTML: '', welcomeHidden: false, ts: Date.now() };
+    conversations.push(c); currentId = c.id;
+  }
+  renderConvList(); persist();
+}
+function maybeTitleConv(q) {
+  const c = curConv();
+  if (c && (c.title === '新对话' || !c.title)) { c.title = q.length > 20 ? q.slice(0, 20) + '…' : q; renderConvList(); }
+}
+
+$('#newChatBtn').addEventListener('click', newConv);
+$('#convList').addEventListener('click', e => {
+  const del = e.target.closest('[data-del]');
+  if (del) { e.stopPropagation(); deleteConv(del.getAttribute('data-del')); return; }
+  const item = e.target.closest('.conv-item');
+  if (item) selectConv(item.getAttribute('data-id'));
+});
+$('#clearBtn') && $('#clearBtn').addEventListener('click', () => {
+  thread.innerHTML = ''; welcome.classList.remove('hidden');
+  const c = curConv(); if (c) { c.threadHTML = ''; c.welcomeHidden = false; c.title = '新对话'; }
+  renderConvList(); persist();
+  toast('对话已清空（本地知识库未改动）');
+});
+
+/* ============================================================
+   打字机：由「点击选项卡」触发（2026-10-23 改口径）
+   —— 原来在页面加载 / switchTab 时自动播，现在只有用户真的点了顶部按钮才播，
+      而且每次点都重播（所以不再用 WeakSet 拦住二次播放）。
+   ============================================================ */
+const TW_DONE = new WeakSet();          // 已完成标记（force 时才看它）
+function twDisabled() {
+  // ?nomotion=1（无头截图用）/ 系统开启「减少动态效果」→ 直接显示完整文字
+  return document.documentElement.classList.contains('nomotion')
+    || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+function typeWriter(el, force) {
+  if (!el) return;
+  if (el.__twPlaying) return;           // 正在打，忽略重复触发（连点不会叠出两条光标）
+  if (!force && TW_DONE.has(el)) return;
+  if (!el.offsetParent) return;         // 所在面板/区块还不可见（display:none），等下次
+  TW_DONE.add(el);
+  if (twDisabled()) return;
+
+  // 把元素里所有文本节点收集起来（<br>/<em>/<b> 结构原样保留），再逐字回填
+  const slots = [];
+  (function walk(n) {
+    for (const c of n.childNodes) {
+      if (c.nodeType === 3) slots.push({ node: c, full: c.nodeValue });
+      else if (c.nodeType === 1) walk(c);
+    }
+  })(el);
+  const total = slots.reduce((a, s) => a + s.full.length, 0);
+  if (!total) return;
+  el.__twPlaying = true;
+
+  el.style.minHeight = el.offsetHeight + 'px';   // 先钉住高度，避免逐字时下面的内容上下跳
+  slots.forEach(s => { s.node.nodeValue = ''; });
+
+  const caret = document.createElement('i');
+  caret.className = 'tw-caret';
+  caret.setAttribute('aria-hidden', 'true');
+
+  // 长句提速：90 字以上 12ms/字，45 字以上 16ms，短句 26ms
+  const per = total > 90 ? 12 : total > 45 ? 16 : 26;
+  let si = 0, ci = 0;
+  const tick = () => {
+    while (si < slots.length && ci >= slots[si].full.length) { si++; ci = 0; }
+    if (si >= slots.length) {                 // 打完：撤光标、还原高度
+      caret.remove();
+      el.style.minHeight = '';
+      el.__twPlaying = false;
+      return;
+    }
+    ci++;
+    slots[si].node.nodeValue = slots[si].full.slice(0, ci);
+    // 光标跟着当前文本节点走（插在它的下一个兄弟之前，遇到 <br> 就停在它前面）
+    slots[si].node.parentNode.insertBefore(caret, slots[si].node.nextSibling);
+    setTimeout(tick, per);
+  };
+  setTimeout(tick, 130);
+}
+function typePanel(panel, force) {
+  panel?.querySelectorAll('[data-tw]').forEach(el => typeWriter(el, force));
+}
+
+/* ============================================================
+   v2：顶部标签切换
+   ============================================================ */
+function switchTab(name) {
+  document.querySelectorAll('#topnav .tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.panels .panel').forEach(p =>
+    p.classList.toggle('active', p.dataset.panel === name));
+  // 打字机不在这里触发：它只跟「用户点了顶部按钮」走，见下方 tab 的 click 监听
+  if (name === 'api') refreshConfigStatus();
+  if (name === 'kb') { refreshKbStats(); loadPrinciples(); loadExportFolders(); }
+  if (name === 'analysis') { loadAnalysisStatus(); }
+}
+document.querySelectorAll('#topnav .tab').forEach(b =>
+  b.addEventListener('click', () => {
+    switchTab(b.dataset.tab);
+    // 点了哪个选项卡，就把那页顶部的说明重新打一遍（force=true → 每次点都重播）
+    typePanel(document.querySelector(`.panels .panel[data-panel="${b.dataset.tab}"]`), true);
+  }));
+
+/* ============================================================
+   v2：API 配置页 —— 真实读写 .env（/api/config）
+   ============================================================ */
+// 三个 Key 字段：key=后端字段，label=展示名，input=输入框，ph=未配置时的默认提示
+const CFG_FIELDS = [
+  { key: 'DASHSCOPE_API_KEY', label: 'DashScope', input: '#keyDashscope', ph: 'sk-…（留空则不修改）' },
+  { key: 'DEEPSEEK_API_KEY', label: 'DeepSeek', input: '#keyDeepseek', ph: 'sk-…（留空则不修改）' },
+  { key: 'TAVILY_API_KEY', label: 'Tavily', input: '#keyTavily', ph: 'tvly-…（留空则不修改）' },
+];
+
+async function refreshConfigStatus() {
+  const box = $('#cfgStatus');
+  try {
+    const r = await fetch('/api/config');
+    const d = await r.json();
+    const c = d.configured || {};
+    const m = d.masked || {};
+    box.innerHTML = CFG_FIELDS.map(f => {
+      const ok = !!c[f.key];
+      const tag = ok ? `已配置 <code>${escapeHTML(m[f.key] || '')}</code>` : '未配置';
+      return `<span class="st"><span class="${ok ? 'dot-ok' : 'dot-no'}"></span>${f.label}：${tag}</span>`;
+    }).join('');
+    // 已配置的 Key 用掩码文本做输入框占位提示 —— 用户一眼看出「配过了」，不会再误以为没配。
+    // 掩码只是 placeholder，不是 value，永远不会被提交覆盖真 Key。
+    CFG_FIELDS.forEach(f => {
+      const el = $(f.input);
+      if (el) el.placeholder = c[f.key] ? `${m[f.key]}（已配置，留空则不修改）` : f.ph;
+    });
+  } catch (e) {
+    box.innerHTML = `<span class="st">无法读取配置（请确认已启动 python src/api.py）</span>`;
+  }
+}
+$('#refreshCfgBtn').addEventListener('click', () => { refreshConfigStatus(); toast('已刷新配置状态'); });
+$('#saveCfgBtn').addEventListener('click', async () => {
+  const body = {};
+  const val = id => ($(id).value || '').trim();
+  // 仅提交用户实际填写的字段；留空 = 不修改（掩码只存在 placeholder 里，不会进入 value）
+  if (val('#keyDashscope')) body.DASHSCOPE_API_KEY = val('#keyDashscope');
+  if (val('#keyDeepseek')) body.DEEPSEEK_API_KEY = val('#keyDeepseek');
+  if (val('#keyTavily')) body.TAVILY_API_KEY = val('#keyTavily');
+  if (!Object.keys(body).length) { toast('请先填写至少一个 Key 再保存'); return; }
+
+  const btn = $('#saveCfgBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin-inline"></span>保存中…';
+  try {
+    const r = await fetch('/api/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (!r.ok || d.error) throw new Error(d.error || ('HTTP ' + r.status));
+    $('#keyDashscope').value = ''; $('#keyDeepseek').value = ''; $('#keyTavily').value = '';
+    toast('配置已保存到 .env，并立即生效');
+    refreshConfigStatus();
+  } catch (e) {
+    toast('保存失败：' + (e && e.message ? e.message : e));
+  } finally {
+    btn.disabled = false; btn.textContent = '保存配置';
+  }
+});
+
+/* ============================================================
+   v3：知识库配置页 —— 统计 + 文件浏览器 + Markdown 编辑器
+   后端接口：/api/kb  /api/kb/tree  GET|POST /api/kb/file
+             /api/kb/mkdir  /api/kb/delete  /api/ingest
+   ============================================================ */
+let KB = {
+  tree: [],
+  current: null,       // 当前打开文件的相对路径
+  loadedContent: '',   // 打开时的原始内容（用于判断是否有未保存改动）
+  dirs: 0,
+  files: 0,
+  lastDir: null,       // 最近一次新建/打开所在文件夹，作为新建弹窗的默认位置
+  pending: new Set(),  // 已改动（保存/新建/删除）但尚未录入索引的文件路径 → 提示增量录入
+};
+
+async function api(url, opts) {
+  const r = await fetch(url, opts);
+  let d = null;
+  try { d = await r.json(); } catch (e) { d = null; }
+  if (!r.ok || (d && d.error)) {
+    const err = new Error((d && d.error) ? d.error : ('HTTP ' + r.status));
+    err.status = r.status;
+    err.body = d;
+    throw err;
+  }
+  return d;
+}
+
+async function refreshKbStats() {
+  kbFlatCache = null;      // 知识库有任何变动 → @ 引用列表下次重新拉取
+  exFoldersLoaded = false; // 同上：导出范围下拉也要按最新文件夹重建
+  try {
+    const d = await api('/api/kb');
+    KB.files = d.files || 0;
+    $('#kbFiles').textContent = d.files;
+    $('#kbChunks').textContent = d.chunks;
+  } catch (e) {
+    $('#kbFiles').textContent = '–'; $('#kbChunks').textContent = '–';
+    toast('无法读取知识库统计：' + (e.message || e));
+  }
+  await refreshKbTree();
+}
+
+/* ============================================================
+   个人原则（硬约束）—— 独立文件 memory/principles.md，不进向量库
+   每次提问无条件注入 system prompt，回答不得与之相悖。
+   ============================================================ */
+async function loadPrinciples() {
+  const ta = $('#prContent');
+  if (!ta) return;
+  try {
+    const d = await api('/api/principles');
+    ta.value = d.text || '';
+    ta.dataset.saved = d.text || '';
+    ta.placeholder = '在这里写你的底线，例如：\n- 考研必须在不脱产、尽量有积蓄、不拖累身体的前提下进行';
+    $('#prMeta').textContent = `${d.path} · ${(d.text || '').length} 字`;
+  } catch (e) {
+    ta.value = '';
+    ta.placeholder = '无法读取（请确认已启动 python src/api.py）';
+    $('#prMeta').textContent = '加载失败';
+  }
+}
+
+$('#prContent').addEventListener('input', () => {
+  const ta = $('#prContent');
+  $('#prMeta').innerHTML = ta.value === (ta.dataset.saved || '')
+    ? '已保存' : '<i class="gl gl-dot"></i>有改动未保存';
+});
+
+$('#prSaveBtn').addEventListener('click', async () => {
+  const btn = $('#prSaveBtn');
+  const ta = $('#prContent');
+  btn.disabled = true; btn.textContent = '保存中…';
+  try {
+    const d = await api('/api/principles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: ta.value }),
+    });
+    ta.dataset.saved = ta.value;
+    toast('个人原则已保存，下次提问立即生效');
+    $('#prMeta').textContent = `${d.path} · ${d.length} 字`;
+  } catch (e) {
+    toast('保存失败：' + (e.message || e));
+  } finally {
+    btn.disabled = false; btn.textContent = '保存原则';
+  }
+});
+
+/* ---------- 目录树渲染 ---------- */
+async function refreshKbTree() {
+  const box = $('#kbTreeBody');
+  try {
+    const d = await api('/api/kb/tree');
+    KB.tree = d.tree || [];
+    const { dirs, files } = countNodes(KB.tree);
+    KB.dirs = dirs;
+    $('#kbDirs').textContent = dirs;
+    if (!KB.tree.length) {
+      box.innerHTML = '<div class="kb-empty">docs/ 还是空的<br>点上方「新建文件」按钮建第一个</div>';
+      return;
+    }
+    box.innerHTML = renderTree(KB.tree, 0);
+    bindTreeEvents();
+  } catch (e) {
+    box.innerHTML = '<div class="kb-empty">无法读取目录树（请确认已启动 python src/api.py）</div>';
+  }
+}
+
+function countNodes(nodes) {
+  let dirs = 0, files = 0;
+  for (const n of nodes) {
+    if (n.type === 'dir') { dirs++; const c = countNodes(n.children || []); dirs += c.dirs; files += c.files; }
+    else files++;
+  }
+  return { dirs, files };
+}
+
+function renderTree(nodes, depth) {
+  return nodes.map(n => {
+    if (n.type === 'dir') {
+      const kids = renderTree(n.children || [], depth + 1);
+      return `<div class="kb-node" data-dir="${escapeHTML(n.path)}">
+        <div class="kb-row dir" data-toggle="${escapeHTML(n.path)}">
+          <span class="ic">${ICON.folderOpen}</span><span class="nm">${escapeHTML(n.name)}</span>
+          <button class="del" data-del="${escapeHTML(n.path)}" title="删除文件夹">×</button>
+        </div>
+        <div class="kb-children">${kids || '<div class="kb-empty" style="padding:6px 8px">空</div>'}</div>
+      </div>`;
+    }
+    const active = KB.current === n.path ? ' active' : '';
+    return `<div class="kb-node">
+      <div class="kb-row file${active}" data-file="${escapeHTML(n.path)}">
+        <span class="ic">${ICON.file}</span><span class="nm" title="${escapeHTML(n.path)}">${escapeHTML(n.name)}</span>
+        <button class="del" data-del="${escapeHTML(n.path)}" title="删除文件">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function bindTreeEvents() {
+  document.querySelectorAll('#kbTreeBody .kb-row.file').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.classList.contains('del')) return;
+      openKbFile(row.dataset.file);
+    });
+  });
+  document.querySelectorAll('#kbTreeBody .del').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteKbPath(btn.dataset.del);
+    });
+  });
+  // 文件夹折叠
+  document.querySelectorAll('#kbTreeBody .kb-row.dir').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.classList.contains('del')) return;
+      const kids = row.parentElement.querySelector('.kb-children');
+      if (kids) kids.style.display = (kids.style.display === 'none') ? '' : 'none';
+    });
+  });
+}
+
+/* ---------- 打开 / 保存 / 删除文件 ---------- */
+async function openKbFile(path) {
+  if (KB.current && $('#kbContent').value !== KB.loadedContent) {
+    if (!confirm('当前文件有未保存的改动，确定要放弃并打开其他文件吗？')) return;
+  }
+  try {
+    const d = await api('/api/kb/file?path=' + encodeURIComponent(path));
+    KB.current = d.path;
+    KB.loadedContent = d.content;
+    // 记住当前文件所在文件夹 → 下次新建时默认落到这里
+    KB.lastDir = d.path.includes('/') ? d.path.slice(0, d.path.lastIndexOf('/')) : '';
+    $('#kbCurPath').innerHTML = '<b>docs/</b>' + escapeHTML(d.path);
+    $('#kbContent').value = d.content;
+    $('#kbContent').disabled = false;
+    $('#kbSaveBtn').disabled = false;
+    $('#kbDeleteBtn').disabled = false;
+    $('#kbDirty').style.display = 'none';
+    updateKbMeta();
+    document.querySelectorAll('#kbTreeBody .kb-row.file').forEach(r =>
+      r.classList.toggle('active', r.dataset.file === path));
+  } catch (e) {
+    toast('打开失败：' + (e.message || e));
+  }
+}
+
+function updateKbMeta() {
+  const v = $('#kbContent').value || '';
+  const lines = v ? v.split('\n').length : 0;
+  $('#kbMeta').textContent = `${v.length} 字符 · ${lines} 行`;
+  const dirty = KB.current && v !== KB.loadedContent;
+  $('#kbDirty').style.display = dirty ? '' : 'none';
+  $('#kbSaveBtn').disabled = !KB.current || !dirty;
+}
+
+/* ---- 「待录入索引」提示：编辑/新建/删除 md 后提醒做增量录入（省 token）---- */
+function markPending(path, note) {
+  if (path) KB.pending.add(path);
+  renderPending(note);
+}
+function clearPending() {
+  KB.pending.clear();
+  renderPending();
+}
+function renderPending(note) {
+  const bar = $('#kbPending');
+  if (!bar) return;
+  const n = KB.pending.size;
+  if (!n) { bar.classList.remove('show'); return; }
+  const list = [...KB.pending].slice(0, 3).map(escapeHTML).join('、');
+  const more = n > 3 ? ` 等 ${n} 个` : '';
+  $('#kbPendingTxt').innerHTML =
+    `有 <b>${n}</b> 个文件改动尚未录入索引 ${note ? '· ' + escapeHTML(note) : ''}` +
+    `<br><em>${list}${more} —— 增量录入只嵌入变化的片段，比整体重建省很多 token</em>`;
+  bar.classList.add('show');
+}
+
+$('#kbPendingBtn').addEventListener('click', async () => {
+  const btn = $('#kbPendingBtn');
+  btn.disabled = true; btn.textContent = '录入中…';
+  try {
+    const d = await api('/api/ingest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'incremental' }),
+    });
+    toast(`增量录入完成：共 ${d.chunks} 片段（复用 ${d.reused}，新嵌入 ${d.embedded}）`);
+    clearPending();
+    await refreshKbStats();
+  } catch (e) {
+    toast('录入失败：' + (e.message || e));
+  } finally {
+    btn.disabled = false; btn.textContent = '立即增量录入';
+  }
+});
+
+async function saveKbFile() {
+  if (!KB.current) { toast('请先选择或新建一个文件'); return; }
+  const btn = $('#kbSaveBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin-inline"></span>保存中…';
+  try {
+    const d = await api('/api/kb/file', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: KB.current, content: $('#kbContent').value }),
+    });
+    KB.loadedContent = $('#kbContent').value;
+    $('#kbDirty').style.display = 'none';
+    toast(`已保存 ${d.path}（${d.size} 字节）`);
+    await refreshKbStats();
+    // 内容变了 → 索引已过时，提示做增量录入（只嵌变化的片段）
+    markPending(KB.current, '刚刚保存');
+    // 保持当前文件选中
+    document.querySelectorAll('#kbTreeBody .kb-row.file').forEach(r =>
+      r.classList.toggle('active', r.dataset.file === KB.current));
+  } catch (e) {
+    toast('保存失败：' + (e.message || e));
+  } finally {
+    btn.textContent = '保存';
+    updateKbMeta();
+  }
+}
+
+async function deleteKbPath(path) {
+  if (!confirm(`确定删除「${path}」吗？此操作不可撤销。（删完会在编辑器上方提示你做增量录入，索引才会同步）`)) return;
+  try {
+    await api('/api/kb/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path }),
+    });
+    toast('已删除 ' + path);
+    if (KB.current === path || (KB.current && KB.current.startsWith(path + '/'))) {
+      KB.current = null; KB.loadedContent = '';
+      $('#kbCurPath').textContent = '未选择文件';
+      $('#kbContent').value = ''; $('#kbContent').disabled = true;
+      $('#kbSaveBtn').disabled = true; $('#kbDeleteBtn').disabled = true;
+      $('#kbDirty').style.display = 'none'; $('#kbMeta').textContent = '—';
+    }
+    await refreshKbStats();
+    // 旧内容仍在索引里 → 提示增量录入（会清除已删片段）
+    markPending(path, '刚刚删除');
+  } catch (e) {
+    toast('删除失败：' + (e.message || e));
+  }
+}
+
+/* ---------- 新建文件 / 文件夹 ---------- */
+let promptResolve = null;
+
+/* 收集 docs/ 下所有文件夹（含根目录 ""），供新建时下拉选择 */
+async function loadFolderOptions() {
+  try {
+    const d = await api('/api/kb/tree');
+    const dirs = [''];
+    (function walk(nodes, prefix) {
+      for (const n of nodes || []) {
+        if (n.type === 'dir') {
+          const p = prefix ? prefix + '/' + n.name : n.name;
+          dirs.push(p);
+          walk(n.children || [], p);
+        }
+      }
+    })(d.tree || [], '');
+    return dirs;
+  } catch (e) {
+    return [''];
+  }
+}
+
+/* 当前弹窗里「文件夹 + 名字」拼出的最终路径 */
+function promptValue() {
+  const name = ($('#promptInput').value || '').trim().replace(/\\/g, '/');
+  if (!name) return '';
+  // 用户自己在文件名里写了目录（如 diary/x.md）→ 以他写的为准
+  if (name.includes('/')) return name.replace(/^\/+/, '');
+  const wrap = $('#promptFolderWrap');
+  let folder = '';
+  if (wrap && wrap.style.display !== 'none') {
+    folder = ($('#promptFolder').value || '').trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+  }
+  return folder ? folder + '/' + name : name;
+}
+
+function updatePromptPreview() {
+  const box = $('#promptPreview');
+  if (!box) return;
+  const val = promptValue();
+  const useFolder = $('#promptFolderWrap').style.display !== 'none';
+  if (!useFolder) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  if (!val) {
+    box.innerHTML = '将创建到：<span class="dir">docs/</span>';
+    return;
+  }
+  const idx = val.lastIndexOf('/');
+  const dir = idx >= 0 ? val.slice(0, idx + 1) : '';
+  const nm = idx >= 0 ? val.slice(idx + 1) : val;
+  box.innerHTML = '将创建到：<span class="dir">docs/' + escapeHTML(dir) + '</span><b>' + escapeHTML(nm) + '</b>';
+}
+
+function askName({ title, hint, placeholder, def, folders = null, folderDef = '',
+                   folderLabel = '文件夹', nameLabel = '文件名' }) {
+  return new Promise((resolve) => {
+    promptResolve = resolve;
+    $('#promptTitle').textContent = title;
+    $('#promptHint').textContent = hint || '';
+    $('#promptInput').placeholder = placeholder || '';
+    $('#promptInput').value = def || '';
+    $('#promptNameLabel').textContent = nameLabel;
+
+    const wrap = $('#promptFolderWrap');
+    if (folders && folders.length) {
+      wrap.style.display = '';
+      $('#promptFolderLabel').textContent = folderLabel;
+      // 下拉候选：根目录 + 所有已有文件夹（去重、排序，根目录排最前）
+      const uniq = [...new Set(folders)];
+      uniq.sort((a, b) => (a === '' ? -1 : b === '' ? 1 : a.localeCompare(b, 'zh')));
+      $('#kbFolderList').innerHTML = uniq.map(f =>
+        `<option value="${escapeHTML(f)}">${f ? escapeHTML(f) : '（docs 根目录）'}</option>`
+      ).join('');
+      $('#promptFolder').value = folderDef || '';
+    } else {
+      wrap.style.display = 'none';
+      $('#promptFolder').value = '';
+    }
+
+    updatePromptPreview();
+    $('#promptModal').classList.add('show');
+    setTimeout(() => $('#promptInput').focus(), 60);
+  });
+}
+function closePrompt(val) {
+  $('#promptModal').classList.remove('show');
+  const r = promptResolve; promptResolve = null;
+  if (r) r(val);
+}
+$('#promptOk').addEventListener('click', () => closePrompt(promptValue()));
+$('#promptCancel').addEventListener('click', () => closePrompt(null));
+$('#promptClose').addEventListener('click', () => closePrompt(null));
+$('#promptModal').addEventListener('click', e => { if (e.target.id === 'promptModal') closePrompt(null); });
+$('#promptInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') closePrompt(promptValue());
+  if (e.key === 'Escape') closePrompt(null);
+});
+$('#promptInput').addEventListener('input', updatePromptPreview);
+$('#promptFolder').addEventListener('input', updatePromptPreview);
+$('#promptFolder').addEventListener('change', updatePromptPreview);
+
+$('#kbNewFileBtn').addEventListener('click', async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const folders = await loadFolderOptions();
+  // 默认落到「上次新建/打开的位置」，省得手打；该目录若已被删则回退到根目录
+  let defFolder = KB.lastDir != null ? KB.lastDir
+                  : (KB.current && KB.current.includes('/') ? KB.current.slice(0, KB.current.lastIndexOf('/')) : '');
+  if (!folders.includes(defFolder)) defFolder = '';
+  const path = await askName({
+    title: '新建 Markdown 文件',
+    hint: '选好文件夹后填文件名即可；后缀可省略（自动补 .md）',
+    placeholder: `${today}.md`,
+    folders,
+    folderDef: defFolder,
+    folderLabel: '保存到文件夹',
+    nameLabel: '文件名',
+  });
+  if (!path) return;
+  let final = path.replace(/\\/g, '/');
+  if (!/\.(md|markdown|txt)$/i.test(final)) final += '.md';
+  try {
+    await api('/api/kb/file', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: final, content: '' }),
+    });
+    toast('已创建 ' + final);
+    KB.lastDir = final.includes('/') ? final.slice(0, final.lastIndexOf('/')) : '';
+    await refreshKbStats();
+    // 新文件还没进索引 → 提示增量录入
+    markPending(final, '刚刚新建');
+    openKbFile(final);
+  } catch (e) {
+    toast('创建失败：' + (e.message || e));
+  }
+});
+
+$('#kbNewDirBtn').addEventListener('click', async () => {
+  const folders = await loadFolderOptions();
+  let defFolder = KB.lastDir != null ? KB.lastDir : '';
+  if (!folders.includes(defFolder)) defFolder = '';
+  const path = await askName({
+    title: '新建文件夹',
+    hint: '选好上级文件夹后填新文件夹名；也可直接输入多级路径（如 diary/2026）',
+    placeholder: 'diary',
+    folders,
+    folderDef: defFolder,
+    folderLabel: '上级文件夹',
+    nameLabel: '新文件夹名',
+  });
+  if (!path) return;
+  try {
+    await api('/api/kb/mkdir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: path.replace(/\\/g, '/') }),
+    });
+    toast('已创建文件夹 ' + path);
+    KB.lastDir = path.replace(/\\/g, '/');
+    await refreshKbStats();
+  } catch (e) {
+    toast('创建失败：' + (e.message || e));
+  }
+});
+
+$('#kbTreeRefreshBtn').addEventListener('click', () => { refreshKbTree(); toast('目录树已刷新'); });
+$('#kbSaveBtn').addEventListener('click', saveKbFile);
+$('#kbDeleteBtn').addEventListener('click', () => { if (KB.current) deleteKbPath(KB.current); });
+$('#kbContent').addEventListener('input', updateKbMeta);
+// Ctrl/Cmd + S 保存
+$('#kbContent').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault(); saveKbFile();
+  }
+});
+
+$('#refreshKbBtn').addEventListener('click', () => { refreshKbStats(); toast('已刷新知识库'); });
+
+/* 统一的重建调用：mode = incremental | rebuild */
+async function runIngest(btn, mode) {
+  const label = btn.textContent;
+  btn.disabled = true; btn.innerHTML = '<span class="spin-inline"></span>处理中…';
+  try {
+    const d = await api('/api/ingest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode }),
+    });
+    if (d.mode === 'incremental') {
+      toast(`增量完成：共 ${d.chunks} 片段（复用 ${d.reused}，新嵌入 ${d.embedded}）`);
+    } else {
+      toast(`已重建：写入 ${d.chunks} 个片段`);
+    }
+    clearPending();      // 已录入 → 撤掉「待录入」提示条
+    refreshKbStats();
+  } catch (e) {
+    toast('处理失败：' + (e.message || e));
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
+// 默认走增量（已录入的内容重新嵌入会浪费 token，所以只嵌入新增/变化的）
+$('#reloadKbBtn').addEventListener('click', () => runIngest($('#reloadKbBtn'), 'incremental'));
+// 彻底重建（换嵌入模型、或索引疑似损坏时用）
+$('#rebuildKbBtn').addEventListener('click', () => {
+  if (!confirm('强制重建会清空向量库并全部重新嵌入（会消耗较多 token），确定继续？')) return;
+  runIngest($('#rebuildKbBtn'), 'rebuild');
+});
+
+/* ============================================================
+   v2：帮助弹窗
+   ============================================================ */
+const HELP_TEXT = {
+  api: `
+    <h4>什么是 API Key？</h4>
+    <div class="h-sub">API 配置 · 上手指南</div>
+    <p>API Key 就像一把「钥匙」——你的程序拿着它去敲各家 AI 服务的门。本项目用到三把：</p>
+    <table>
+      <tr><th>钥匙</th><th>负责什么</th><th>去哪里拿</th></tr>
+      <tr><td>DashScope（阿里云）</td><td>把文字变成向量、建库与检索</td><td>阿里云百炼控制台，API-KEY 管理</td></tr>
+      <tr><td>DeepSeek</td><td>判断是否检索、给证据打分、生成回答</td><td>DeepSeek 开放平台，API keys</td></tr>
+      <tr><td>Tavily</td><td>本地资料不足时上网搜索补充</td><td>Tavily 官网注册后获取</td></tr>
+    </table>
+    <h5>获取步骤</h5>
+    <ul><li>分别打开上述三个平台，注册 / 登录。</li>
+    <li>在各自的「API Keys / API-KEY 管理」页点「创建」。</li>
+    <li>复制生成的以 <b>sk-</b> 开头的字符串。</li>
+    <li>粘贴到本页输入框，点「保存配置」。</li></ul>
+    <h5>为什么要保密？</h5>
+    <p>Key 等于你的账号钱包，<b>任何人拿到都能花你的钱、用你的额度</b>。请勿截图分享、勿提交到 Git。本项目只在<b>你本机</b>使用 Key，写入 <b>.env</b>，不会传给除上述三家外的任何服务；万一泄露请立刻去平台重置。</p>
+    <h5>保存后有什么作用？</h5>
+    <p>点「保存配置」后，Key 会写入 <b>.env</b> 并<span class="hl">立即生效</span>（无需重启服务）。下方状态区可确认三个 Key 是否就绪。</p>
+    <h5>看到 <b>sk-******1234</b> 是什么意思？</h5>
+    <p>说明这把钥匙<b>已经配好了</b>。出于安全，页面只显示打码后的片段（保留前缀和末 4 位），<b>不会显示完整 Key</b>。这也提醒你：<span class="hl">输入框留空即可，不会覆盖已保存的 Key</span>。若要更换，直接粘贴新的完整 Key 覆盖保存即可。</p>`,
+  kb: `
+    <h4>什么是本地向量库？</h4>
+    <div class="h-sub">知识库配置 · 上手指南</div>
+    <p>一句话：<b>把你自己的文字，变成能「按意思」查找的资料库。</b>普通查找只能搜「一模一样的字」，向量库理解<b>语义</b>——你问「我最近在焦虑什么」，它能找出写着「最近总是睡不着」的日记，哪怕一个关键词都对不上。</p>
+    <p>整个库只存在你电脑上（项目里的 <b>chroma_db/</b>），不上传云端。</p>
+    <h5>使用步骤</h5>
+    <ul><li>把 Markdown（<b>.md</b>）文件放进项目的 <b>docs/</b> 文件夹 —— 现在可以直接在本页左侧的<b>目录树</b>里操作，不用再手动开文件夹。</li>
+    <li>点左上角「新建文件」「新建文件夹」按钮；点某个文件即在右侧编辑，改完按 <b>保存</b>（或 <b>Ctrl+S</b>）。</li>
+    <li>新建时上方有 <b>文件夹下拉框</b>：点一下列出 docs/ 里所有已有文件夹，选一个就自动填好，不用手打路径；也可以直接输入一个新文件夹名（会自动创建）。</li>
+    <li>支持 <b>预览目录与文件</b>、<b>录入 / 修改 / 删除</b>；悬停文件行右侧的 <b>×</b> 可删除。</li>
+    <li>建议命名：<b>diary-2026-08-15.md</b>、<b>study-notes-007.md</b>。</li>
+    <li>私密内容可在文件开头写 <b>private: true</b>，它就<span class="hl">不会被检索、也不会发给任何 AI</span>。</li>
+    <li>保存 / 新建 / 删除后，编辑器上方会弹出<b>「待录入」提示条</b>，点右侧 <b>立即增量录入</b> 即可同步索引（只嵌入变化的片段，省 token）；也可以手动点顶部「增量录入（省 token）」。</li></ul>
+    <h5>文件存在哪里？安全吗？</h5>
+    <p>所有文件都真实落在你本机的 <b>docs/</b> 目录，网页只是它的一个编辑器。<b>docs/ 已被 .gitignore 排除</b>，不会随代码推送到远程。服务端的文件接口<span class="hl">严格锁定在 docs/ 内</span>，只能读写 .md / .markdown / .txt，无法触碰项目其他文件。</p>
+    <h5>点「增量录入」后会发生什么？</h5>
+    <ul><li>扫描 <b>docs/</b> 下所有 md 文件；</li>
+    <li>把长文切成小段（每段约 512 字）；</li>
+    <li>给每段算一个<b>内容指纹</b>，跟已入库的比对：</li>
+    <li>· 指纹已存在（这段录过）：<span class="hl">直接复用旧向量，不再花 token</span>；</li>
+    <li>· 指纹是新出现的：才调用 DashScope 嵌入；</li>
+    <li>· 已删除文件的片段：自动清理。</li></ul>
+    <p><b>「增量录入」</b>适合日常：改了哪篇就只嵌哪篇，省 token、快。<b>「强制重建」</b>会清空重来、全部重新嵌入，只在<b>换了嵌入模型</b>或索引疑似损坏时才用（会多花 token，弹窗会先确认）。</p>`,
+  principles: `
+    <h4>什么是「个人原则」？</h4>
+    <div class="h-sub">个人原则 · 上手指南</div>
+    <p>这里是你的<b>底线清单</b>——那些「无论什么时候都不能违背」的硬约束。它和知识库里的日记走的是<b>两条不同的路</b>：</p>
+    <table>
+      <tr><th></th><th>普通知识库（docs/）</th><th>个人原则</th></tr>
+      <tr><td>怎么被用</td><td>按语义检索，<b>命中才用</b></td><td><b>每次提问都强制带上</b></td></tr>
+      <tr><td>作用</td><td>提供事实依据，可被引用</td><td><b>约束回答方向</b>，不可引用</td></tr>
+      <tr><td>冲突时</td><td>—</td><td><b>以原则为准</b></td></tr>
+    </table>
+    <p>举个例子：你在原则里写「考研必须不脱产、尽量有积蓄、不拖累身体」，那么以后你问「我该不该考研」「怎么安排复习」时，回答会自动按这条底线来，不会给出让你辞职、掏空积蓄的方案。</p>
+    <h5>怎么写？</h5>
+    <ul><li>只写<b>约束</b>，不写日记、不写资料。</li>
+    <li>一条一句，越短越有力。例：<span class="hl">考研必须在不脱产、尽量有积蓄、不拖累身体的前提下进行</span>。</li>
+    <li>写完点<b>保存原则</b>，<b>下一次提问立即生效</b>——不用重启服务、也不用重新录入索引。</li></ul>
+    <h5>存在哪？会不会泄露？</h5>
+    <p>存成独立文件 <b>memory/principles.md</b>，<b>不进向量库</b>（所以不会混进「证据」里被引用）。该目录已加入 <b>.gitignore</b>，不会提交到 Git。</p>
+    <p>原则会随每次提问一起发给你配置的 <b>DeepSeek</b>（生成回答必需），但<b>不会</b>进入网络搜索、不会上传给其它服务。</p>`,
+  analysis: `
+    <h4>日记分析能做什么？</h4>
+    <div class="h-sub">日记分析 · 上手指南</div>
+    <p>docs/ 下的<b>每篇记录</b>（按月合集的日记按天切分，聊天记录、笔记、文章、清单整篇分析）生成一张结构化「日记卡」：摘要、情绪极性(-1~1)、能量(1~5)、情绪标签、意图/待办、金句，以及与「个人原则」的冲突。卡片按<b>内容指纹本地缓存</b>，正文没变就不重算。</p>
+    <h5>怎么用</h5>
+    <ul><li>点 <b>生成 / 补齐日记卡</b>：每批处理 8 篇，只发送该篇正文给 DeepSeek，失败自动降级为正则抽取（标「降级」）。生成过程中可随时点 <b>终止生成</b>，已完成的卡片已缓存、不会丢。</li>
+    <li>选区间（本周 / 本月 / 本季 / 全年 / 全部 / 其它，或自定义日期）后点 <b>生成周期总结</b>：模型只读区间内的卡片摘要与金句，<b>不读全文</b>，分块总结再合并，结论带日期与原文引用；同样可随时终止。</li>
+    <li>没有日期的笔记、文章、清单、聊天记录整篇成卡，统一收在 <b>其它</b>（卡片列表里单独分组）：它们不参与时间曲线，但会参与主题聚合；在「全部」里也会一并总结，标注为「无日期」。</li>
+    <li>情绪/能量曲线、主题 Top N、高频人物、意图决策追踪直接由卡片聚合，不额外花 token。</li>
+    <li>报告可点 <b>下载报告</b>，同时在服务端 <b>reports/</b> 留一份。</li></ul>
+    <h5>隐私与缓存</h5>
+    <p>缓存目录 <b>analysis_cache/</b>、报告 <b>reports/</b>、导出 <b>exports/</b>、聊天记录 <b>chat_history/</b> 都在项目根目录、已 gitignore，<b>不在 docs/ 内</b>（不会被增量录入嵌进向量库）。<b>private: true</b> 默认不分析，必须显式勾选才纳入。</p>`,
+  retrieve: `
+    <h4>三个参数分别是什么？</h4>
+    <div class="h-sub">检索与回退 · 上手指南</div>
+    <h5>① Top-K —— 先捞出多少条候选</h5>
+    <p>提问后先从知识库挑出「看起来最相关」的 K 条。调<b>大</b>捞得更全但可能掺入无关内容；调<b>小</b>更快更省但可能漏掉有用记录。推荐 <b>20</b>。</p>
+    <h5>② 证据阈值（重排打分）—— 从候选中筛出真正有用的</h5>
+    <p>捞出的 K 条里难免「看着像、其实无关」。程序让 AI 给每条打分（0–10），<b>只保留达到阈值的</b>。调<b>高</b>只留最铁证据、回答更可靠；调<b>低</b>保留更多但可能掺干扰。推荐 <b>7</b>。也可直接关闭重排：此时所有候选都送入生成（更快但不够精）。</p>
+    <h5>③ 网络搜索回退 —— 本地不够时上网找</h5>
+    <p>本地证据太少、改写也没捞到更多时，程序会<span class="cy">上网搜索补充</span>。<b>只把「你的问题本身」发给搜索引擎</b>，绝不上传任何日记内容。推荐保持开启；若只想让回答完全基于自己的记录，可关掉。</p>
+    <h5>什么时候该动这些参数？</h5>
+    <ul><li>总答不上来：Top-K 调大，或阈值调低。</li>
+    <li>「明明笔记里有、它却说没有」：多半是阈值太严（笔记往往只是零散一句话，AI 给的分不高），把阈值调到 5–6 试试。</li>
+    <li>回答夹带无关内容：阈值调高。</li>
+    <li>想省钱 / 求快：关重排、Top-K 调小。</li>
+    <li>问新闻、时效信息：确认网络回退是开着的。</li></ul>`,
+};
+function openHelp(key) {
+  $('#helpContent').innerHTML = HELP_TEXT[key] || '';
+  $('#helpModal').classList.add('show');
+}
+function closeHelp() { $('#helpModal').classList.remove('show'); }
+document.querySelectorAll('.help-btn').forEach(b =>
+  b.addEventListener('click', () => openHelp(b.dataset.help)));
+$('#helpClose').addEventListener('click', closeHelp);
+$('#helpModal').addEventListener('click', e => { if (e.target.id === 'helpModal') closeHelp(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHelp(); });
+
+/* ============================================================
+   渲染
+   ============================================================ */
+const globeSVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/></svg>`;
+
+function scoreRing(score) {
+  const s = Math.max(0, Math.min(10, +score || 0));
+  const r = 17, c = 2 * Math.PI * r, off = c * (1 - s / 10);
+  return `<div class="ring">
+    <svg width="44" height="44"><circle cx="22" cy="22" r="${r}" fill="none" stroke="var(--line)" stroke-width="3"/>
+    <circle cx="22" cy="22" r="${r}" fill="none" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg>
+    <div class="val">${s.toFixed(1)}</div></div>`;
+}
+const webSeal = () => `<div class="ring web-seal">${globeSVG}</div>`;
+
+/* 轻量 Markdown → HTML（先转义，再处理加粗/列表/段落） */
+function mdLite(text) {
+  let t = escapeHTML(text || '');
+  t = t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  const blocks = t.split(/\n{2,}/).filter(b => b.trim() !== '');
+  if (!blocks.length) return '';
+  return blocks.map(b => {
+    const lines = b.split('\n');
+    if (lines.length && lines.every(l => /^\s*[-*]\s+/.test(l))) {
+      return '<ul>' + lines.map(l => '<li>' + l.replace(/^\s*[-*]\s+/, '') + '</li>').join('') + '</ul>';
+    }
+    return '<p>' + lines.join('<br>') + '</p>';
+  }).join('');
+}
+async function typeHTML(el, html) {
+  if (document.documentElement.classList.contains('nomotion')) { el.innerHTML = html; return; }
+  const tokens = html.split(/(<[^>]+>)/g);
+  let out = '';
+  for (const tk of tokens) {
+    if (!tk) continue;
+    if (tk[0] === '<') { out += tk; el.innerHTML = out; continue; }
+    for (const ch of tk) { out += ch; el.innerHTML = out; if ('，。：；！？'.includes(ch)) await sleep(24); else await sleep(7); }
+    scrollDown();
+  }
+}
+
+function addUser(text, scoped) {
+  welcome.classList.add('hidden');
+  const t = document.createElement('div'); t.className = 'turn user';
+  t.innerHTML = `<div class="bubble-user"></div>`;
+  t.firstElementChild.textContent = text;
+  // 检索范围始终可见：选了 @ 就列具体文件；没选则显式标注「全部知识库」。
+  // 目的是让用户一眼看清「这一问到底翻了哪些资料」，而不是猜。
+  const chips = (scoped && scoped.length)
+    ? scoped.map(p => `<span class="mchip" title="检索范围">@${escapeHTML(p)}</span>`).join('')
+    : `<span class="mchip all" title="未指定范围：默认检索整个知识库（docs/ 全部内容）">@ 全部知识库</span>`;
+  const s = document.createElement('div');
+  s.className = 'mention-chips';
+  s.style.marginTop = '7px';
+  s.innerHTML = chips;
+  t.querySelector('.bubble-user').insertAdjacentElement('afterend', s);
+  thread.appendChild(t); scrollDown(); return t;
+}
+function addAssistantShell() {
+  const t = document.createElement('div'); t.className = 'turn assistant';
+  t.innerHTML = `<div class="a-card" style="border-left-color:var(--line);display:none"></div><div class="stages"></div>`;
+  thread.appendChild(t);
+  return { turn: t, card: $('.a-card', t), stages: $('.stages', t) };
+}
+
+/* 工作流步骤动画（等待 API 期间的进度展示） */
+function startStages(stages) {
+  const labels = ['意图判断 · classify_intent', '向量检索 · ChromaDB', '证据重排 · DeepSeek', '生成回答 · DeepSeek'];
+  stages.innerHTML = `<div class="stages-title">Agent 工作流 · LangGraph</div><div class="steps" id="steps"></div>`;
+  const box = $('#steps', stages);
+  const els = labels.map(l => {
+    const d = document.createElement('div'); d.className = 'step';
+    d.innerHTML = `<span class="sdot"></span><span>${l}</span>`;
+    box.appendChild(d); return d;
+  });
+  let i = 0, stopped = false;
+  (async () => {
+    while (!stopped && i < els.length) {
+      const el = els[i];
+      el.classList.add('active');
+      el.insertAdjacentHTML('beforeend', '<span class="spin"></span>');
+      await sleep(650);
+      if (stopped) return;
+      el.classList.remove('active'); el.classList.add('done');
+      const sp = $('.spin', el); if (sp) sp.remove();
+      i++;
+    }
+  })();
+  return { finish() { stopped = true; els.forEach(el => { el.classList.remove('active'); el.classList.add('done'); const sp = $('.spin', el); if (sp) sp.remove(); }); } };
+}
+
+function webBanner(kind) {
+  if (kind === 'mix') return `<div class="web-banner"><span class="wi">${globeSVG}</span><div><b>已合并双源证据。</b>本地记录给出你的个人倾向，Tavily 补充了外部信息，两类来源已分色标注。<span class="wb-note"><i class="gl gl-diamond"></i>网络搜索仅发送了你的问题文本，未发送任何本地片段或日记内容</span></div></div>`;
+  return `<div class="web-banner"><span class="wi">${globeSVG}</span><div><b>本地知识库证据不足，已为你搜索网络补充信息。</b>以下内容来自互联网，而非你的个人记录。<span class="wb-note"><i class="gl gl-diamond"></i>Tavily 仅携带问题本身搜索，未发送任何日记内容</span></div></div>`;
+}
+
+function buildFunnelSteps(data, webN) {
+  const localN = Math.max(0, (data.evidence_count || 0) - webN);
+  return `<div class="funnel">
+    <div class="funnel-head"><i class="gl gl-diamond"></i>证据漏斗
+      <span style="margin-left:auto;color:${webN ? 'var(--cyan)' : 'var(--jade)'}">本地入选 ${localN} 条 / 召回 ${state.topK}${webN ? ` · 网络补充 ${webN} 条` : ''}</span></div>
+    <div class="funnel-steps">
+      <div class="fstep done"><span class="fdot"></span><b>意图判断</b><span>需检索</span></div>
+      <span class="farrow"></span>
+      <div class="fstep done"><span class="fdot"></span><b>ChromaDB</b><span>Top-${state.topK}</span></div>
+      <span class="farrow"></span>
+      <div class="fstep ${state.useJev ? 'done' : ''}"><span class="fdot"></span><b>DeepSeek 打分</b><span>${state.useJev ? `≥ ${state.threshold} 分` : '跳过'}</span></div>
+      <span class="farrow"></span>
+      ${webN ? `<div class="fstep web done"><span class="fdot"></span><b>Tavily</b><span>${webN} 条</span></div><span class="farrow"></span>` : ''}
+      <div class="fstep done"><span class="fdot"></span><b>生成</b><span>${data.evidence_count} 条证据</span></div>
+    </div>
+  </div>`;
+}
+
+function buildCitations(local, web) {
+  const total = local.length + web.length;
+  let body = '';
+  if (local.length) {
+    body += `<div class="cite-group-label local"><i class="gl gl-diamond"></i>本地证据 · docs/（DeepSeek 打分）</div>`;
+    body += local.map((c, i) => `<div class="cite-card" id="cite-${i + 1}">
+      <div class="cc-head"><span class="cc-tag">${escapeHTML(c.source_type || 'docs')}</span><span class="cc-path">${escapeHTML(c.source)}</span></div>
+      ${scoreRing(c.score)}
+      <div class="cc-date">${escapeHTML(c.date || '无日期')}</div>
+      <div class="cc-quote">${escapeHTML(c.chunk || '')}</div>
+    </div>`).join('');
+  }
+  if (web.length) {
+    const base = local.length;
+    body += `<div class="cite-group-label web"><i class="gl gl-diamond"></i>网络来源 · Tavily（无打分）</div>`;
+    body += web.map((c, i) => `<div class="cite-card web" id="cite-${base + i + 1}">
+      <div class="cc-head"><span class="cc-tag">web</span><a class="cc-url" href="${escapeHTML(c.source)}" target="_blank" rel="noopener">${escapeHTML(c.title || c.source)}</a></div>
+      ${webSeal()}
+      <div class="cc-date web">Tavily 摘要</div>
+      <div class="cc-quote">${escapeHTML(c.chunk || '')}</div>
+    </div>`).join('');
+  }
+  return `<div class="expander" open>
+    <button type="button" onclick="this.parentElement.toggleAttribute('open')">
+      <span style="color:var(--amber)">${ICON.quote}</span> 引用来源 · ${total} 条（本地 ${local.length} · 网络 ${web.length}）
+      <span class="chev"><i class="gl gl-caret"></i></span>
+    </button>
+    <div class="exp-panel"><div class="exp-inner"><div class="exp-pad">${body}</div></div></div>
+  </div>`;
+}
+
+function emptyCard(webTried) {
+  return `<div class="empty-card ${webTried ? 'web-tried' : ''}">
+    <div class="eicon">${globeSVG}</div>
+    <h4>${webTried ? '本地与网络都没有你的相关记录' : '你的 docs/ 里没有足够记录'}</h4>
+    <p>${webTried
+      ? '本地知识库没有找到相关证据；网络搜索也无法回答只关于你个人的问题，我不会编造答案冒充你的历史。'
+      : '我没有找到能回答这个问题的高置信证据，且网络搜索回退处于关闭状态，不会基于猜测编造答案。'}</p>
+    <div class="trace">
+      向量检索：召回 Top-${state.topK} 片段<br>
+      重排：<b>0 条</b> score ≥ ${state.threshold}${webTried ? '<br><span class="ok">Tavily：已尝试，无相关结果</span>' : '<br>网络回退：<b>已关闭</b>'}
+    </div></div>`;
+}
+
+function errCard(msg) {
+  return `<div class="err-card">
+    <svg class="eicon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 16.5v.5"/></svg>
+    <div><h4>请求失败</h4>
+    <p>本地 API 调用出错。请确认已启动服务：<b>python src/api.py</b><br>${escapeHTML(msg)}</p>
+    <button class="btn btn-primary" id="retryBtn">重试本次提问</button></div></div>`;
+}
+
+async function renderAssistant(card, data) {
+  const local = (data.citations || []).filter(c => c.type === 'local');
+  const web = (data.citations || []).filter(c => c.type === 'web');
+  const webN = web.length, localN = local.length;
+
+  if (data.need_retrieval && (data.evidence_count || 0) === 0) {
+    card.style.borderLeftColor = data.web_search_triggered ? 'var(--cyan)' : 'var(--red)';
+    card.innerHTML = emptyCard(!!data.web_search_triggered);
+    return;
+  }
+
+  let badges = '';
+  if (webN && localN) badges = `<span class="badge medium">本地 ${localN} + 网络 ${webN}</span>`;
+  else if (webN) badges = `<span class="badge web">${ICON.warn} 本地 0 · 网络 ${webN}</span>`;
+  else if (localN) badges = `<span class="badge high">证据充分</span>`;
+  else badges = `<span class="badge muted">未检索知识库</span>`;
+  if (data.need_retrieval && !state.useJev) badges += `<span class="badge low">重排关闭 · 未过滤</span>`;
+  // 参考范围始终标注：让用户明确「这一问翻的是全部知识库，还是我 @ 的那几个文件」
+  if (data.need_retrieval) {
+    const scopedN = (data.scoped_sources || []).length;
+    badges += `<span class="badge muted" title="本次检索范围">参考范围 · ${scopedN ? `指定 ${scopedN} 项` : '全部知识库'}</span>`;
+  }
+
+  card.style.borderLeftColor = webN ? 'var(--cyan)' : 'var(--amber)';
+  card.innerHTML = `
+    <div class="a-head"><span class="diamond"><i class="gl gl-diamond"></i></span><span class="model">问己 · DeepSeek</span>
+      ${badges}<span class="time">${now()}</span></div>
+    ${data.web_search_triggered ? webBanner(localN ? 'mix' : 'web') : ''}
+    <div class="a-body" id="aBody"></div>
+    ${data.need_retrieval ? buildFunnelSteps(data, webN) : ''}
+    ${(localN || webN) ? buildCitations(local, web) : ''}`;
+  await typeHTML($('#aBody', card), mdLite(data.answer || ''));
+}
+
+/* ============================================================
+   主流程：调用本地 API
+   ============================================================ */
+function lastHistory() {
+  return [...thread.querySelectorAll('.bubble-user')].slice(-6).map(el => ({ role: 'user', content: el.textContent }));
+}
+
+async function ask(q, scopedArg) {
+  if (state.busy) return;
+  state.busy = true;
+  ensureConv();
+  maybeTitleConv(q);
+  const scoped = (scopedArg || state.mentions).slice();
+  addUser(q, scoped);
+  const { card, stages } = addAssistantShell();
+  const ctrl = startStages(stages);
+
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: q,
+        history: lastHistory(),
+        top_k: state.topK,
+        jev_threshold: state.threshold,
+        use_jev: state.useJev,
+        use_web_search: state.useWeb,
+        sources: scoped.length ? scoped : null,
+        conversation_id: currentId || null,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
+    ctrl.finish(); stages.remove();
+    card.style.display = 'block';
+    await renderAssistant(card, data);
+  } catch (e) {
+    ctrl.finish(); stages.remove();
+    card.style.display = 'block';
+    card.style.borderLeftColor = 'var(--red)';
+    card.innerHTML = errCard(e && e.message ? e.message : String(e));
+    const rb = $('#retryBtn', card);
+    if (rb) rb.onclick = () => { card.parentElement.remove(); ask(q, scoped); };
+  }
+
+  state.busy = false;
+  scrollDown();
+  persist();
+}
+
+/* ---------- 发送 / 输入 ---------- */
+$('#sendBtn').addEventListener('click', () => {
+  const v = $('#chatInput').value.trim(); if (!v) return;
+  $('#chatInput').value = ''; hideMentionPop();
+  const scoped = state.mentions.slice();       // 先取出本问的引用范围
+  state.mentions = []; renderMentionChips();   // 引用只作用于当前这一问
+  ask(v, scoped);
+});
+
+/* ---------- v4：@ 引用知识库（文件夹 / 文件均可选） ---------- */
+let mpItems = [];        // 当前浮层候选项
+let mpIndex = 0;         // 键盘选中项
+let mpOpen = false;
+let kbFlatCache = null;  // 扁平化的树缓存 [{path,name,type,label}]
+
+function flattenTree(nodes, prefix) {
+  let out = [];
+  for (const n of nodes) {
+    const label = prefix ? prefix + '/' + n.name : n.name;
+    // 歧义坑：docs/ 下若有个子文件夹也叫 docs，它的 label 就是 "docs"，
+    // 用户会误以为 @docs = 整个知识库根目录，实际只是 docs/docs/ 这个子文件夹。
+    // 这里单独标注一下，让候选列表与 chip 都能看出它相对 docs/ 的真实位置。
+    const hint = (n.path === 'docs') ? '（是 docs/ 里的子文件夹，不是整个知识库）' : '';
+    out.push({ path: n.path, name: n.name, label: label, type: n.type, hint: hint });
+    if (n.type === 'dir' && n.children && n.children.length) {
+      out = out.concat(flattenTree(n.children, label));
+    }
+  }
+  return out;
+}
+
+async function loadKbFlat() {
+  if (kbFlatCache) return kbFlatCache;
+  try {
+    const r = await fetch('/api/kb/tree');
+    const d = await r.json();
+    kbFlatCache = flattenTree(d.tree || [], '');
+  } catch (e) { kbFlatCache = []; }
+  return kbFlatCache;
+}
+
+// 输入框里「@」后面那段文字 = 过滤关键词
+function mentionQuery() {
+  const el = $('#chatInput');
+  const upto = el.value.slice(0, el.selectionStart);
+  const m = upto.match(/@([^\s@]*)$/);
+  return m ? m[1] : null;
+}
+
+async function openMentionPop() {
+  const q = mentionQuery();
+  if (q === null) { hideMentionPop(); return; }
+  const all = await loadKbFlat();
+  mpItems = q ? all.filter(x => x.label.toLowerCase().includes(q.toLowerCase())) : all;
+  mpIndex = 0;
+  renderMentionList();
+  $('#mentionPop').classList.add('show');
+  mpOpen = true;
+}
+
+function hideMentionPop() {
+  $('#mentionPop').classList.remove('show');
+  mpOpen = false;
+}
+
+function renderMentionList() {
+  const box = $('#mentionList');
+  if (!mpItems.length) {
+    box.innerHTML = '<div class="mp-empty">没有匹配的文件夹或文件<br>（先在「知识库配置」里新建，或换个关键词）</div>';
+    return;
+  }
+  box.innerHTML = mpItems.slice(0, 40).map((x, i) => `
+    <div class="mp-item ${i === mpIndex ? 'active' : ''} ${x.type === 'dir' ? 'dir' : ''}" data-i="${i}">
+      <span class="ic">${x.type === 'dir' ? ICON.folderOpen : ICON.file}</span>
+      <span class="nm">${escapeHTML(x.label)}</span>
+      ${x.hint ? `<span class="kind" style="color:var(--amber)">${escapeHTML(x.hint)}</span>` : `<span class="kind">${x.type === 'dir' ? '文件夹' : '文件'}</span>`}
+    </div>`).join('');
+  document.querySelectorAll('#mentionList .mp-item').forEach(el => {
+    el.addEventListener('mousedown', (e) => { e.preventDefault(); pickMention(+el.dataset.i); });
+    el.addEventListener('mouseenter', () => {
+      mpIndex = +el.dataset.i;
+      document.querySelectorAll('#mentionList .mp-item').forEach(n => n.classList.toggle('active', +n.dataset.i === mpIndex));
+    });
+  });
+}
+
+function pickMention(i) {
+  const item = mpItems[i];
+  if (!item) return;
+  const el = $('#chatInput');
+  // 删掉已输入的 "@关键词" 片段
+  const upto = el.value.slice(0, el.selectionStart);
+  const rest = el.value.slice(el.selectionStart);
+  const replaced = upto.replace(/@([^\s@]*)$/, '');
+  el.value = replaced + rest;
+  el.selectionStart = el.selectionEnd = replaced.length;
+  el.focus();
+  addMention(item.path, item.label, item.type);
+  hideMentionPop();
+  kbFlatCache = null;   // 下次重新拉（可能有新增）
+}
+
+function addMention(path, label, type) {
+  if (state.mentions.includes(path)) { toast('已在引用范围内：' + label); return; }
+  state.mentions.push(path);
+  renderMentionChips();
+}
+
+function removeMention(path) {
+  state.mentions = state.mentions.filter(p => p !== path);
+  renderMentionChips();
+}
+
+function renderMentionChips() {
+  const box = $('#mentionChips');
+  if (!state.mentions.length) { box.innerHTML = ''; return; }
+  box.innerHTML = state.mentions.map(p => `
+    <span class="mchip" title="只在 ${escapeHTML(p)} 范围内检索">
+      <span class="t">@${escapeHTML(p)}</span>
+      <span class="x" data-p="${escapeHTML(p)}">×</span>
+    </span>`).join('');
+  box.querySelectorAll('.mchip .x').forEach(x =>
+    x.addEventListener('click', () => removeMention(x.dataset.p)));
+}
+
+// 输入框键盘：浮层开启时优先处理上下/回车/Esc
+$('#chatInput').addEventListener('keydown', e => {
+  if (mpOpen) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); mpIndex = Math.min(mpIndex + 1, Math.min(mpItems.length, 40) - 1); renderMentionList(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); mpIndex = Math.max(mpIndex - 1, 0); renderMentionList(); return; }
+    if (e.key === 'Enter') { e.preventDefault(); pickMention(mpIndex); return; }
+    if (e.key === 'Escape') { e.preventDefault(); hideMentionPop(); return; }
+  }
+  if (e.key === 'Enter') { e.preventDefault(); $('#sendBtn').click(); }
+});
+$('#chatInput').addEventListener('input', () => { openMentionPop(); });
+$('#chatInput').addEventListener('click', () => { if (mentionQuery() !== null) openMentionPop(); });
+document.addEventListener('click', e => {
+  if (!$('#composer').contains(e.target)) hideMentionPop();
+});
+
+/* ============================================================
+   日记分析 + 导出 + 聊天记录导出
+   后端：/api/analysis/*  /api/export/*  /api/chat/history*
+   ============================================================ */
+const AN = { range: 'all', from: '', to: '', lastCards: null, lastReport: null,
+  generating: false, summarizing: false, cardsAbort: null, summaryAbort: null, stopCards: false };
+
+function anIncludePrivate() { return $('#anIncludePrivate').checked; }
+function setAnMsg(t) { $('#anGenMsg').textContent = t; }
+
+/* 区间预设 → 日期 */
+function rangeDates(kind) {
+  const now = new Date();
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  if (kind === 'week') {
+    const d = new Date(now); d.setDate(now.getDate() - 6); return { from: iso(d), to: iso(now), granularity: 'week' };
+  }
+  if (kind === 'month') return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(now), granularity: 'month' };
+  if (kind === 'quarter') {
+    const qs = Math.floor(now.getMonth() / 3) * 3;
+    return { from: iso(new Date(now.getFullYear(), qs, 1)), to: iso(now), granularity: 'quarter' };
+  }
+  if (kind === 'year') return { from: iso(new Date(now.getFullYear(), 0, 1)), to: iso(now), granularity: 'year' };
+  return { from: '', to: '', granularity: 'custom' };
+}
+
+async function loadAnalysisStatus() {
+  try {
+    const d = await api('/api/analysis/status?include_private=' + anIncludePrivate());
+    $('#anTotal').textContent = d.total;
+    $('#anCached').textContent = d.cached;
+    $('#anPending').textContent = d.pending;
+    $('#anUndated').textContent = d.undated;
+    setAnMsg(`共 ${d.total} 条记录，已生成 ${d.cached} 张卡片、待生成 ${d.pending} 张`
+      + (d.private_excluded ? `；已排除 ${d.private_excluded} 条私密记录（勾选上方复选框可纳入）` : '。'));
+  } catch (e) {
+    setAnMsg('无法读取分析状态：' + (e.message || e));
+  }
+  loadCards();
+}
+
+/* 循环分批生成卡片，每批 8 篇；可随时终止（已生成卡片已缓存，不会丢） */
+async function generateCards() {
+  if (AN.generating) return;
+  AN.generating = true;
+  AN.stopCards = false;
+  const btn = $('#anGenerateBtn');
+  const stopBtn = $('#anStopBtn');
+  btn.disabled = true;
+  stopBtn.disabled = false;            // 常驻按钮：生成中才可用
+  stopBtn.innerHTML = ICON.stop + '终止生成';
+  const bar = $('#anProgress'); bar.style.display = 'block';
+  const fill = $('#anProgressBar');
+  let aborted = false;
+  try {
+    let guard = 0;
+    while (guard++ < 60) {
+      if (AN.stopCards) { aborted = true; break; }
+      AN.cardsAbort = new AbortController();
+      const r = await api('/api/analysis/generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ include_private: anIncludePrivate(), limit: 8 }),
+        signal: AN.cardsAbort.signal,
+      });
+      AN.cardsAbort = null;
+      const pct = r.total ? Math.round(r.cached / r.total * 100) : 100;
+      fill.style.width = pct + '%';
+      $('#anCached').textContent = r.cached; $('#anPending').textContent = r.pending;
+      setAnMsg(`已生成 ${r.cached} / ${r.total} 张（本批 ${r.processed} 篇，降级 ${r.degraded || 0}，失败 ${r.failed || 0}）`);
+      if (r.cancelled) { aborted = true; break; }
+      if (r.done || r.pending === 0) break;
+      await new Promise(res => setTimeout(res, 300));
+    }
+    if (aborted) { setAnMsg('已终止生成；已完成的卡片已缓存，点「生成 / 补齐」可继续。'); toast('已终止生成'); }
+    else toast('日记卡生成完成');
+  } catch (e) {
+    if (e.name === 'AbortError') { aborted = true; setAnMsg('已终止生成；已完成的卡片已缓存。'); }
+    else toast('生成失败：' + (e.message || e));
+  } finally {
+    AN.generating = false; AN.cardsAbort = null;
+    btn.disabled = false; stopBtn.disabled = true; stopBtn.innerHTML = ICON.stop + '终止生成';
+    setTimeout(() => { bar.style.display = 'none'; fill.style.width = '0'; }, 1500);
+    if (aborted) {
+      await loadAnalysisStatus();
+      setAnMsg('已终止生成：已完成的卡片已缓存，点「生成 / 补齐」可从断点继续。');
+    } else {
+      loadAnalysisStatus();
+    }
+  }
+}
+
+/* 终止卡片生成：前端停循环 + 通知后端停掉当前批次 */
+function stopGenerateCards() {
+  if (!AN.generating) return;
+  AN.stopCards = true;
+  const sb = $('#anStopBtn');
+  sb.disabled = true; sb.innerHTML = ICON.stop + '正在终止…';   // 立即给反馈，避免用户连点
+  setAnMsg('正在终止…当前这一条跑完就停（已生成的卡片会保留）。');
+  if (AN.cardsAbort) AN.cardsAbort.abort();
+  // 取消请求不 await：即使后端没停掉，前端循环也已经停止（且不覆盖最终提示文案）
+  api('/api/analysis/cancel', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ task: 'cards' }),
+  }).catch(() => {});
+}
+
+/* 查询区间内的卡片与聚合数据 */
+async function loadCards() {
+  const qs = new URLSearchParams();
+  if (AN.range === 'other') {
+    qs.set('undated_only', '1');
+  } else {
+    if (AN.from) qs.set('date_from', AN.from);
+    if (AN.to) qs.set('date_to', AN.to);
+  }
+  qs.set('include_private', anIncludePrivate());
+  try {
+    const d = await api('/api/analysis/cards?' + qs.toString());
+    AN.lastCards = d;
+    renderCharts(d);
+    renderCards(d);
+  } catch (e) {
+    $('#anCharts').innerHTML = '<div class="an-empty">无法加载卡片数据：' + escapeHTML(e.message || String(e)) + '</div>';
+  }
+}
+
+/* 情绪/能量折线图（内联 SVG，不引依赖） */
+let CHART_SEQ = 0;          // clipPath id 唯一化（多次重绘不撞 id）
+let CHART_IO = [];          // 观察器集合，重绘时统一 disconnect，避免堆积
+const motionOff = twDisabled;   // 复用打字机那套降级判断
+
+function lineChart(series) {
+  const W = 640, H = 170, L = 34, R = 12, T = 14, B = 24;
+  const undated = series.filter(s => !s.date).length;
+  const pts = series.filter(s => s.date);
+  const undatedNote = undated
+    ? `<div class="meta" style="margin:6px 0 0">${ICON.clip} 另有 ${undated} 张「其它」（无日期）卡片，不参与时间曲线，见下方卡片列表。</div>` : '';
+  if (pts.length < 2) return '<div class="an-empty">区间内有日期的卡片不足 2 张，暂不画曲线（先生成卡片，或扩大区间）。</div>' + undatedNote;
+  const n = pts.length;
+  const x = i => L + (n === 1 ? 0 : i * (W - L - R) / (n - 1));
+  const y = v => T + (1 - (v + 1) / 2) * (H - T - B);
+  const path = (key, min, max) => {
+    const norm = s => {
+      const v = key === 'energy' ? ((s.energy - 3) / 2) : s.sentiment;
+      return Math.max(-1, Math.min(1, v));
+    };
+    return pts.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(norm(s)).toFixed(1)}`).join(' ');
+  };
+  const dots = (key, color) => pts.map((s, i) => {
+    const v = key === 'energy' ? Math.max(-1, Math.min(1, (s.energy - 3) / 2)) : Math.max(-1, Math.min(1, s.sentiment));
+    return `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3.2" fill="${color}">
+      <title>${s.date} · ${s.heading || ''}｜情绪 ${s.sentiment} / 能量 ${s.energy}${s.degraded ? '（降级）' : ''}</title></circle>`;
+  }).join('');
+  const zeroY = y(0);
+  const labels = [1, 0, -1].map(v => `<text x="${L - 6}" y="${y(v) + 3}" text-anchor="end" font-size="9" fill="var(--ink-3)">${v}</text>`).join('');
+  const xlabels = [0, Math.floor(n / 2), n - 1].map(i =>
+    `<text x="${x(i).toFixed(1)}" y="${H - 7}" text-anchor="middle" font-size="9" fill="var(--ink-3)">${pts[i].date.slice(5)}</text>`).join('');
+
+  /* ---- 坐标网格 ----
+     规矩：网格永远比数据线淡一档，不能抢戏。
+     · 水平线：1 / 0.5 / 0 / -0.5 / -1 五档；0 那条已有专门的中性虚线，这里跳过；
+       ±1 是边界用实线，±0.5 是半分档用点线（2 5）。
+     · 垂直线：对齐到真实数据点（最多 5 根），同样点线，方便对着日期读值。
+     · 左轴 + 底轴各一根 1px 实线，把图框住，像坐标纸。
+     配色：不能用 --line（那是深蓝，跟深底亮差太小、整张图糊成一片）。
+     改走亮度更高的灰紫阶：边界/坐标轴 --ink-2，半分档与竖线 --ink-3。 */
+  const gridY = [1, 0.5, -0.5, -1].map(v =>
+    `<line x1="${L}" y1="${y(v).toFixed(1)}" x2="${W - R}" y2="${y(v).toFixed(1)}"
+       stroke="${Math.abs(v) === 1 ? 'var(--ink-2)' : 'var(--ink-3)'}" stroke-width="1"
+       stroke-dasharray="${Math.abs(v) === 1 ? '0' : '2 5'}"
+       opacity="${Math.abs(v) === 1 ? .42 : .5}"/>`).join('');
+  const vCount = Math.min(5, n);
+  const vIdx = [...new Set(Array.from({ length: vCount }, (_, k) =>
+    Math.round(k * (n - 1) / Math.max(1, vCount - 1))))];
+  const gridX = vIdx.map(i =>
+    `<line x1="${x(i).toFixed(1)}" y1="${T}" x2="${x(i).toFixed(1)}" y2="${H - B}"
+       stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="2 5" opacity=".42"/>`).join('');
+  const axes = `
+      <line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="var(--ink-2)" stroke-width="1" opacity=".42"/>
+      <line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="var(--ink-2)" stroke-width="1" opacity=".42"/>`;
+
+  const clipId = 'anClip' + (++CHART_SEQ);
+
+  return `
+    <svg class="an-chart" viewBox="0 0 ${W} ${H}">
+      <defs><clipPath id="${clipId}">
+        <rect class="an-clip-rect" x="0" y="0" width="${W}" height="${H}"/>
+      </clipPath></defs>
+      ${gridY}${gridX}${axes}
+      <line x1="${L}" y1="${zeroY}" x2="${W - R}" y2="${zeroY}" stroke="var(--line)" stroke-dasharray="3 4"/>
+      <text x="${W - R}" y="${zeroY - 5}" text-anchor="end" font-size="9" fill="var(--ink-3)">中性</text>
+      ${labels}
+      <g clip-path="url(#${clipId})">
+        <path d="${path('sentiment')}" fill="none" stroke="var(--amber)" stroke-width="1.4"/>
+        <path d="${path('energy')}" fill="none" stroke="var(--cyan)" stroke-width="1.4" stroke-dasharray="5 3"/>
+        ${dots('sentiment', 'var(--amber)')}${dots('energy', 'var(--cyan)')}
+      </g>
+      ${xlabels}
+    </svg>
+    <div class="meta" style="margin:2px 0 0">
+      <span class="lg-line solid" style="color:var(--amber)">情绪极性（-1~1）</span>　·　<span class="lg-line dashed" style="color:var(--cyan)">能量（1~5，归一到中线）</span>
+    </div>${undatedNote}`;
+}
+
+function barList(title, items, cls) {
+  if (!items || !items.length) return '';
+  const max = Math.max(...items.map(x => x.count));
+  const rows = items.slice(0, 8).map(x => `
+    <div class="an-bar">
+      <span class="nm" title="${escapeHTML(x.name)}">${escapeHTML(x.name)}</span>
+      <span class="track"><span class="fill" style="width:${Math.round(x.count / max * 100)}%;${cls === 'cyan' ? 'background:var(--cyan)' : ''}"></span></span>
+      <span class="ct">${x.count}</span>
+    </div>`).join('');
+  return `<div style="flex:1;min-width:230px"><div class="meta" style="margin-bottom:4px">${title}</div><div class="an-bars">${rows}</div></div>`;
+}
+
+function renderCharts(d) {
+  const st = d.stats || {};
+  const box = $('#anCharts');
+  const statHtml = `
+    <div class="an-grid">
+      <div class="an-stat"><b>${st.entries ?? 0}</b><span>区间内卡片</span></div>
+      <div class="an-stat"><b class="amber">${st.avg_sentiment ?? '—'}</b><span>平均情绪极性</span></div>
+      <div class="an-stat"><b class="cyan">${st.avg_energy ?? '—'}</b><span>平均能量</span></div>
+      <div class="an-stat"><b>${d.private_excluded ?? 0}</b><span>已排除私密</span></div>
+    </div>`;
+  const bars = `<div class="an-row" style="align-items:flex-start;gap:18px">
+      ${barList('情绪标签 Top', d.emotions_top)}
+      ${barList('高频事件 / 主题 Top', d.events_top)}
+      ${barList('高频人物 Top', d.people_top, 'cyan')}
+    </div>`;
+  box.innerHTML = statHtml + lineChart(d.series || []) + bars;
+  armChartReveal(box);
+}
+
+/* ---- 曲线「从左往右延展」的触发 ----
+   ① 主触发：rootMargin 上下各 -25%，把观察区收成视口中央那一条带。
+      图表跨进这条带才算「滚到图表中间」—— 比「刚露头就播」更贴合手感。
+   ② 兜底：图表已经大半露在视口里、却永远碰不到中央带（比如视口很高、
+      整块面板恰好装得下），不能让它一直空着 —— 露够一半起 900ms 还没播就直接播。
+   每次进入都重播：移出去 isIntersecting 转 false，下次再进来再播一遍。
+   降级：?nomotion=1 / 系统「减少动态效果」/ 无 IntersectionObserver → 不动画、直接完整可见。 */
+function armChartReveal(root) {
+  const svg = root.querySelector('.an-chart');
+  const rect = svg && svg.querySelector('.an-clip-rect');
+  if (!rect) return;
+  CHART_IO.forEach(o => o.disconnect());
+  CHART_IO = [];
+  if (motionOff() || !('IntersectionObserver' in window)) {
+    rect.classList.remove('collapsed', 'playing');
+    return;
+  }
+  rect.classList.add('collapsed');
+
+  let played = false, fallback = 0;
+  const play = () => {
+    played = true;
+    clearTimeout(fallback);
+    rect.classList.remove('playing');
+    rect.classList.add('collapsed');
+    void rect.getBoundingClientRect();      // 强制回流，保证重播时动画从头再来
+    rect.classList.add('playing');
+  };
+  // 播完彻底摘掉类，回到基础态 scaleX(1)。
+  // 不能只靠 animation-fill-mode:forwards —— 面板 display:none 再切回来时动画会被重置，
+  // 带着 collapsed 就会突然缩回 0，看着像曲线自己消失了。
+  rect.addEventListener('animationend', () => rect.classList.remove('collapsed', 'playing'));
+
+  const bandIO = new IntersectionObserver(es => {
+    for (const e of es) if (e.isIntersecting) play();
+  }, { threshold: 0, rootMargin: '-25% 0px -25% 0px' });
+
+  const visIO = new IntersectionObserver(es => {
+    for (const e of es) {
+      if (!e.isIntersecting) { clearTimeout(fallback); continue; }
+      if (played) continue;
+      clearTimeout(fallback);
+      fallback = setTimeout(() => { if (!played) play(); }, 900);
+    }
+  }, { threshold: 0.55 });
+
+  bandIO.observe(svg);
+  visIO.observe(svg);
+  CHART_IO = [bandIO, visIO];
+}
+
+function esc(s) { return escapeHTML(s == null ? '' : String(s)); }
+function statusBadge(st) {
+  return { open: '未兑现', done: '已兑现', abandoned: '放弃' }[st] || '未兑现';
+}
+
+function cardHtml(r) {
+  const c = r.card || {};
+  const head = r.date
+    ? r.date + (r.heading ? ' · ' + r.heading : '')
+    : ICON.clip + ' 其它 · ' + (r.title || r.source || '');
+  const tags = (c.emotions || []).map(e => `<span class="ac-tag em">${esc(e)}</span>`).join('');
+  const typeTag = `<span class="ac-tag">${esc(r.source_type || '记录')}</span>`;
+  const deg = r.degraded ? '<span class="ac-tag" title="模型调用失败，仅用正则/词典抽取">降级</span>' : '';
+  const li = (arr, f) => arr && arr.length ? `<ul class="ac-list">${arr.map(x => `<li>${f(x)}</li>`).join('')}</ul>` : '';
+  const intentions = li(c.intentions, x => `<b>${esc(x.text)}</b> <span class="meta">[${statusBadge(x.status)}]</span>`);
+  const todos = li(c.todos, x => `${ICON.box} ${esc(x.text)}`);
+  const events = li(c.events, x => esc(x));
+  const people = (c.people || []).length || (c.places || []).length
+    ? `<div class="meta" style="margin:4px 0">${ICON.user} ${esc((c.people || []).join('、'))}　${ICON.pin} ${esc((c.places || []).join('、'))}</div>` : '';
+  const quotes = (c.quotes || []).map(q => `<div class="ac-quote">“${esc(q)}”</div>`).join('');
+  const conflicts = (c.principle_conflicts || []).map(cf =>
+    `<div class="ac-conflict">${ICON.warn} 与原则冲突：<b>${esc(cf.principle)}</b><br>「${esc(cf.quote)}」</div>`).join('');
+  const summary = c.summary ? `<p style="margin:4px 0;line-height:1.75">${mdLite(c.summary)}</p>` : '';
+  return `<div class="an-card">
+    <div class="ac-head">
+      <span class="ac-date">${esc(head)}</span>
+      <span class="ac-src">${esc(r.source)}</span>
+      <span class="ac-scores">
+        <span class="ac-tag em">情绪 ${esc(c.sentiment)}</span>
+        <span class="ac-tag em">能量 ${esc(c.energy)}/5</span>
+        ${typeTag}${deg}
+      </span>
+    </div>
+    ${summary}${tags ? `<div>${tags}</div>` : ''}${people}${events}${intentions}${todos}${quotes}${conflicts}
+  </div>`;
+}
+
+function renderCards(d) {
+  const box = $('#anCards');
+  const recs = (d.cards || []).slice().reverse();
+  if (!recs.length) {
+    box.innerHTML = '<div class="an-empty">区间内还没有卡片。<br>点上方「生成 / 补齐日记卡」，或调整区间；无日期的笔记/文章/清单在「其它」里。</div>';
+    return;
+  }
+  const dated = recs.filter(r => r.date);
+  const undated = recs.filter(r => !r.date);
+  const datedHtml = dated.length
+    ? `<div class="ac-group">${dated.map(cardHtml).join('')}</div>`
+    : '';
+  const undatedHtml = undated.length
+    ? `<div class="ac-group-title">${ICON.clip} 其它（无日期，按文件成卡，共 ${undated.length} 篇）</div>
+       <div class="ac-group">${undated.map(cardHtml).join('')}</div>`
+    : '';
+  box.innerHTML = datedHtml + undatedHtml;
+}
+
+/* 区间 chip */
+document.querySelectorAll('.an-chip[data-range]').forEach(ch => ch.addEventListener('click', () => {
+  document.querySelectorAll('.an-chip[data-range]').forEach(x => x.classList.toggle('active', x === ch));
+  const kind = ch.dataset.range;
+  AN.range = kind;
+  if (kind === 'other') {
+    AN.from = ''; AN.to = '';
+    $('#anFrom').value = ''; $('#anTo').value = '';
+  } else {
+    const d = rangeDates(kind);
+    AN.from = d.from; AN.to = d.to;
+    $('#anFrom').value = d.from; $('#anTo').value = d.to;
+  }
+  loadCards();
+}));
+$('#anFrom').addEventListener('change', e => { AN.from = e.target.value; AN.range = 'custom'; document.querySelectorAll('.an-chip[data-range]').forEach(x => x.classList.remove('active')); loadCards(); });
+$('#anTo').addEventListener('change', e => { AN.to = e.target.value; AN.range = 'custom'; document.querySelectorAll('.an-chip[data-range]').forEach(x => x.classList.remove('active')); loadCards(); });
+$('#anIncludePrivate').addEventListener('change', loadAnalysisStatus);
+$('#anRefreshBtn').addEventListener('click', loadAnalysisStatus);
+$('#anGenerateBtn').addEventListener('click', generateCards);
+$('#anStopBtn').addEventListener('click', stopGenerateCards);
+
+/* 周期总结；可终止（已完成的分块结果不落盘，下次重新生成） */
+async function generateSummary() {
+  if (AN.summarizing) return;
+  AN.summarizing = true;
+  const btn = $('#anSummaryBtn');
+  const stopBtn = $('#anSummaryStopBtn');
+  const bar = $('#anSummaryProgress');
+  bar.style.display = 'block'; bar.querySelector('i').style.width = '30%';
+  btn.disabled = true;
+  stopBtn.disabled = false;            // 常驻按钮：生成中才可用
+  stopBtn.innerHTML = ICON.stop + '终止生成';
+  $('#anSummaryMsg').textContent = '正在分块总结并合并（只发送卡片摘要，不发送全文）…可随时终止。';
+  const gran = ({ week: 'week', month: 'month', quarter: 'quarter', year: 'year' })[AN.range] || 'custom';
+  const undatedOnly = AN.range === 'other';
+  AN.summaryAbort = new AbortController();
+  try {
+    const d = await api('/api/analysis/summary', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        granularity: undatedOnly ? 'custom' : gran,
+        date_from: AN.from || null, date_to: AN.to || null,
+        undated_only: undatedOnly,
+        include_private: anIncludePrivate(),
+      }),
+      signal: AN.summaryAbort.signal,
+    });
+    if (d && d.cancelled) {
+      $('#anSummaryMsg').textContent = `已终止：完成了 ${d.partials_done}/${d.total_batches} 个分块，未生成报告。`;
+      toast('已终止生成');
+    } else {
+      AN.lastReport = d;
+      renderSummary(d);
+      $('#anSummaryMsg').textContent = `报告已生成，覆盖 ${d.entries} 张卡片` + (d.undated ? `（其中无日期 ${d.undated} 篇）` : '') + (d.saved_path ? `；已存到 ${d.saved_path}` : '');
+      $('#anDownloadBtn').style.display = '';
+    }
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      $('#anSummaryMsg').textContent = '已终止：未生成报告（已生成的日记卡不受影响）。';
+    } else if (e.status === 499 && e.body && e.body.cancelled) {
+      $('#anSummaryMsg').textContent = `已终止：完成了 ${e.body.partials_done}/${e.body.total_batches} 个分块，未生成报告。`;
+      toast('已终止生成');
+    } else {
+      $('#anSummaryMsg').textContent = '生成失败：' + (e.message || e);
+      toast('周期总结失败：' + (e.message || e));
+    }
+  } finally {
+    AN.summarizing = false; AN.summaryAbort = null;
+    btn.disabled = false; stopBtn.disabled = true; stopBtn.innerHTML = ICON.stop + '终止生成';
+    bar.style.display = 'none';
+  }
+}
+
+function stopGenerateSummary() {
+  if (!AN.summarizing) return;
+  const sb = $('#anSummaryStopBtn');
+  sb.disabled = true; sb.innerHTML = ICON.stop + '正在终止…';
+  $('#anSummaryMsg').textContent = '正在终止…当前分块跑完就停（不会生成报告）。';
+  if (AN.summaryAbort) AN.summaryAbort.abort();
+  api('/api/analysis/cancel', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ task: 'summary' }),
+  }).catch(() => {});
+}
+
+function renderSummary(d) {
+  const citeHtml = (d.citations || []).length ? `
+    <h5 style="margin:14px 0 6px">依据片段（可点来源查看原文）</h5>
+    ${d.citations.map(c => `<div class="ac-quote">“${esc(c.quote)}”
+      <br><span class="meta">【${esc(c.date)}】<a href="/api/kb/file?path=${encodeURIComponent(c.source || '')}&raw=1" target="_blank">${esc(c.source)}</a></span></div>`).join('')}` : '';
+  const decisions = (d.decisions || []).length ? `
+    <h5 style="margin:14px 0 6px">决策 / 意图追踪</h5>
+    <ul class="ac-list">${d.decisions.map(x => `<li><b>${esc(x.intent)}</b>：${esc(x.first_date)} – ${esc(x.last_date)}
+      <span class="meta">[${{ still_open: '仍在提', landed: '已落地', dropped: '不再提' }[x.status] || esc(x.status)}]</span></li>`).join('')}</ul>` : '';
+  const contr = (d.contradictions || []).length ? `
+    <h5 style="margin:14px 0 6px">前后矛盾的表述（只并列、不评判）</h5>
+    ${d.contradictions.map(x => `<div class="ac-conflict"><b>${esc(x.topic)}</b><br>
+      【${esc(x.date_a)}】「${esc(x.quote_a)}」<br>【${esc(x.date_b)}】「${esc(x.quote_b)}」</div>`).join('')}` : '';
+  const triggers = (d.triggers || []).length ? `
+    <h5 style="margin:14px 0 6px">情绪低点触发因素</h5><ul class="ac-list">${d.triggers.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+  $('#anSummary').innerHTML = `<div class="md-body">${mdLite(d.markdown || '')}</div>${triggers}${decisions}${contr}${citeHtml}`;
+}
+
+$('#anSummaryBtn').addEventListener('click', generateSummary);
+$('#anSummaryStopBtn').addEventListener('click', stopGenerateSummary);
+$('#anDownloadBtn').addEventListener('click', () => {
+  const d = AN.lastReport; if (!d) return;
+  const header = `# 问己 · 日记${d.label}（${(d.range || {}).from || '最早'} ~ ${(d.range || {}).to || '最新'}）\n\n`
+    + `> 生成时间：${d.generated_at}　·　覆盖 ${d.entries} 天记录\n\n---\n\n`;
+  const md = header + d.markdown + '\n\n## 依据片段\n\n' +
+    (d.citations || []).map(c => `- 【${c.date}】${c.source}：“${c.quote}”`).join('\n');
+  const dlName = d.undated_only
+    ? '日记其它回顾_无日期.md'
+    : `日记${d.label}_${(d.range || {}).from || 'early'}_${(d.range || {}).to || 'now'}.md`;
+  downloadBlob(new Blob([md], { type: 'text/markdown;charset=utf-8' }), dlName);
+});
+
+/* 通用下载 */
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function filenameFromDisposition(cd, fallback) {
+  if (!cd) return fallback;
+  const m = cd.match(/filename\*=UTF-8''([^;]+)/i);
+  if (m) try { return decodeURIComponent(m[1]); } catch (e) {}
+  const m2 = cd.match(/filename="?([^";]+)"?/i);
+  return m2 ? m2[1] : fallback;
+}
+async function postDownload(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) {
+    let msg = 'HTTP ' + r.status;
+    try { const d = await r.json(); msg = d.error || msg; } catch (e) {}
+    throw new Error(msg);
+  }
+  const blob = await r.blob();
+  const t = r.headers.get('content-disposition') || '';
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  downloadBlob(blob, filenameFromDisposition(t, 'export-' + stamp));
+}
+
+/* ---------- 知识库页：日记/材料导出 ---------- */
+
+/* 范围下拉 = docs/ 里的真实文件夹（不再硬编码分类）。
+   文件夹来自 /api/kb/tree，与「知识库配置」页看到的目录一致；
+   选中某个文件夹 → 后端按 folders 前缀过滤，导出该目录下的全部文件。 */
+let exFoldersLoaded = false;
+
+/* 递归收集「含文件的文件夹」（空目录导出必然 0 个文件，不放进下拉添乱） */
+function collectFileDirs(nodes, out, prefix) {
+  for (const n of nodes || []) {
+    if (n.type !== 'dir') continue;
+    const label = prefix ? prefix + '/' + n.name : n.name;
+    let hasFile = false;
+    const stack = [n.children || []];
+    while (stack.length) {
+      const cur = stack.pop();
+      for (const c of cur) {
+        if (c.type === 'file') { hasFile = true; break; }
+        stack.push(c.children || []);
+      }
+      if (hasFile) break;
+    }
+    if (hasFile) out.push({ path: n.path, label });
+    collectFileDirs(n.children, out, label);
+  }
+  return out;
+}
+
+async function loadExportFolders(force) {
+  const sel = $('#exType');
+  if (!sel) return;
+  if (exFoldersLoaded && !force) return;
+  const keep = sel.value;
+  try {
+    const d = await api('/api/kb/tree');
+    const dirs = collectFileDirs(d.tree || [], [], '');
+    sel.innerHTML = '<option value="">全部（整个知识库）</option>' +
+      dirs.map(x => `<option value="${escapeHTML(x.path)}">${escapeHTML(x.label)}</option>`).join('');
+    sel.value = dirs.some(x => x.path === keep) ? keep : '';
+    exFoldersLoaded = true;
+  } catch (e) {
+    // 拉不到目录树时保留「全部」，不影响导出
+  }
+}
+
+function exBody() {
+  const scope = $('#exType').value;   // '' = 全部
+  return {
+    fmt: $('#exFmt').value,
+    type_filter: 'all',
+    folders: scope ? [scope] : null,
+    date_from: $('#exFrom').value || null,
+    date_to: $('#exTo').value || null,
+    include_private: $('#exIncludePrivate').checked,
+  };
+}
+async function exPreview() {
+  try {
+    const d = await api('/api/export/diary/preview', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(exBody()),
+    });
+    $('#exPreview').innerHTML = `将导出 <b>${d.files}</b> 个文件，约 <b>${d.size_kb} KB</b>。`
+      + (d.excluded_private ? `　<span style="color:var(--red)">已排除 ${d.excluded_private} 个私密文件</span>。` : '')
+      + (d.range_active ? '　时间区间对按月合集日记按天过滤。' : '');
+  } catch (e) { $('#exPreview').textContent = '预览失败：' + (e.message || e); }
+}
+$('#exPreviewBtn').addEventListener('click', exPreview);
+$('#exDownloadBtn').addEventListener('click', async () => {
+  const btn = $('#exDownloadBtn');
+  btn.disabled = true;
+  try {
+    await postDownload('/api/export/diary', exBody());
+    toast('导出文件已开始下载');
+  } catch (e) {
+    toast('导出失败：' + (e.message || e));
+  } finally { btn.disabled = false; }
+});
+['exType', 'exFmt', 'exFrom', 'exTo', 'exIncludePrivate'].forEach(id =>
+  $(id === 'exIncludePrivate' ? '#exIncludePrivate' : '#' + id)?.addEventListener('change', exPreview));
+
+/* ---------- 侧栏：聊天记录导出 / 清空 ---------- */
+async function exportChat(conversationId) {
+  try {
+    await postDownload('/api/export/chat', {
+      fmt: 'markdown',               // JSON / CSV 两种格式已按要求移除，只留 Markdown 对话稿
+      conversation_id: conversationId || null,
+    });
+    toast('聊天记录已导出');
+  } catch (e) { toast('导出失败：' + (e.message || e)); }
+}
+$('#exportCurChatBtn').addEventListener('click', () => {
+  if (!currentId) { toast('当前没有会话'); return; }
+  exportChat(currentId);
+});
+$('#exportAllChatBtn').addEventListener('click', () => exportChat(null));
+$('#clearChatBtn').addEventListener('click', async () => {
+  if (!confirm('确定物理清空本机全部聊天记录（chat_history/*.jsonl）？\n此操作不可恢复，且不影响 docs/ 里的原始文件。')) return;
+  if (!confirm('再次确认：真的要清空全部服务端聊天记录吗？')) return;
+  try {
+    const d = await api('/api/chat/history/clear', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope: 'all', confirmed: true }),
+    });
+    toast(`已删除 ${d.deleted} 条聊天记录`);
+  } catch (e) { toast('清空失败：' + (e.message || e)); }
+});
+
+/* ============================================================
+   初始化：恢复历史会话 / 建立当前会话
+   ============================================================ */
+(function init() {
+  try {
+    const raw = localStorage.getItem(CONV_KEY);
+    if (raw) { const d = JSON.parse(raw); conversations = d.conversations || []; currentId = d.currentId || (conversations[0] && conversations[0].id) || null; }
+  } catch (e) { conversations = []; currentId = null; }
+
+  if (conversations.length && currentId && conversations.find(c => c.id === currentId)) {
+    restoreView(curConv());
+  } else {
+    const c = { id: uid(), title: '新对话', threadHTML: '', welcomeHidden: false, ts: Date.now() };
+    conversations = [c]; currentId = c.id;
+  }
+  renderConvList();
+
+  /* URL 参数钩子（调试/无头截图用）：?nomotion=1&q=你的问题 */
+  const qp = new URLSearchParams(location.search);
+  if (qp.get('nomotion') === '1') document.documentElement.classList.add('nomotion');
+
+  applyTheme();
+  // 首屏不再自动播打字机：按需求改成「只有点了顶部选项卡才展示」。
+  // 想手动看效果就点一下「对话」——同页也会重播。
+  if (qp.get('topk')) { state.topK = +qp.get('topk'); $('#topk').value = state.topK; $('#topkVal').textContent = state.topK; rangeFill($('#topk')); }
+  if (qp.get('threshold')) { state.threshold = +qp.get('threshold'); $('#threshold').value = state.threshold; $('#thVal').textContent = state.threshold; rangeFill($('#threshold')); }
+
+  fetch('/api/health')
+    .then(r => r.json())
+    .then(d => {
+      const missing = Object.entries(d.keys || {}).filter(([, v]) => !v).map(([k]) => k);
+      if (missing.length) toast('缺少 API Key：' + missing.join(' / ') + '（请在 .env 中补齐）');
+    })
+    .catch(() => toast('未检测到本地 API 服务，请先运行：python src/api.py'));
+
+  const auto = qp.get('q');
+  if (auto) setTimeout(() => ask(auto), 400);
+})();
+</script>
+</body>
+</html>
+
