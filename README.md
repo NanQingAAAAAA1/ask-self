@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.10%2B-5B5BDD?style=flat-square)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-5B5BDD?style=flat-square)
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-1.x-5B5BDD?style=flat-square)
-![Local First](https://img.shields.io/badge/数据-100%25%20本地-5B5BDD?style=flat-square)
+![LangGraph](https://img.shields.io/badge/LangGraph-0.2%2B-5B5BDD?style=flat-square)
 
 ![问己首页](assets/01-home.webp)
 
@@ -19,7 +19,7 @@
 
 ## 这是什么
 
-一个**完全跑在你自己电脑上**的个人知识库问答系统。它把你散落各处的 Markdown（日记、网课笔记、工作记录、聊天存档、收藏文章）统一切成片段存进本地向量库；你提问时，它先判断「这问题该不该翻记录」，再去翻，翻到的每一段都要经过一次打分筛选，最后生成**带引用来源**的回答。
+一个**跑在你自己电脑上**的个人知识库问答系统。它把你散落各处的 Markdown（日记、网课笔记、工作记录、聊天存档、收藏文章）统一切成片段存进本地向量库；你提问时，它先判断「这问题该不该翻记录」，再去翻，翻到的每一段都要经过一次打分筛选，最后生成**带引用来源**的回答。
 
 它解决的不是「能不能聊」，而是三个更实际的问题：
 
@@ -31,6 +31,33 @@
 | 聊天内容全进了别人的服务器 | 原始文件和索引不出本机；敏感片段可标记为不入索引 |
 
 核心取向只有一条：**模型能力可以租，数据主权不能让。**
+
+---
+
+## 技术栈
+
+| 层 | 用了什么 | 具体用法 |
+|---|---|---|
+| 运行时 | Python 3.10+ | 全量类型标注，业务模块统一从 `src/config.py` 取配置 |
+| Web 服务 | FastAPI 0.115+ · Starlette · Uvicorn | 单端口同时托管 REST API 与前端页面；`uvicorn` 在 `main()` 内按需启动 |
+| 参数校验 | Pydantic v2 | `/api/chat` 请求体字段白名单 + 取值范围约束 |
+| 工作流 | LangGraph 0.2+ | `StateGraph` 串起 意图判断 → 召回 → 重排 → 改写 → 生成 → 兜底 |
+| 切块 | langchain-text-splitters | `RecursiveCharacterTextSplitter`，512 字 / 50 重叠 / 句末分隔符优先 |
+| 向量库 | ChromaDB 1.x | `PersistentClient` 落盘 `chroma_db/`；写入与查询都显式传向量，不启用内置 ONNX 模型 |
+| 嵌入 | DashScope（阿里云百炼）· OpenAI 兼容协议 | `qwen3.7-text-embedding` → `-flash` 逐级降级；1024 维，维度记录在 `chroma_db/embedding_model.txt` 用于对齐 |
+| 生成 / 打分 | DeepSeek `deepseek-chat` | 一次调用批量给 Top-K 打分，`response_format=json_object` + `temperature=0` |
+| 网络兜底 | Tavily | 仅当本地证据为 0 时触发，只发问题文本 |
+| 配置解析 | python-dotenv · PyYAML | `.env` 单一配置源；材料 frontmatter 用 PyYAML 解析 |
+| 前端 | 原生 HTML + CSS + JavaScript，**单文件** | `frontend/index.html`；零框架、零构建、零 npm；图标为内联 SVG `<symbol>`，蚀刻底图为内联 SVG data-URI |
+| 前端字体 | Google Fonts | Big Shoulders Display（标题）· IBM Plex Mono（数字/代码）· Noto Sans SC（正文）· Noto Serif SC（引文） |
+| 本地存储 | SQLite（Chroma 内嵌）· JSONL · Markdown | 向量与元数据在 `chroma_db/`；聊天记录按月追加 `chat_history/YYYY-MM.jsonl`；周期总结落 `reports/` |
+| 打包 | PyInstaller | `build_exe.py` 生成 onedir（推荐）/ onefile；程序与数据目录分离 |
+
+三条明确的取舍：
+
+- **模型全走 OpenAI 兼容协议**：换供应商只改 `base_url` 和模型名，不动业务代码。
+- **前端不做工程化**：没有 node_modules、没有构建产物、没有版本漂移，`git clone` 完直接能跑；代价是单个 HTML 文件比较长（约 3300 行）。
+- **检索链路全本地**：向量库、原始文件、聊天记录都不出机器；但切块后的文本要发给嵌入与生成服务，这是 RAG 的必要环节，自己评估服务商条款。
 
 ---
 
