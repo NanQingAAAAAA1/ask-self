@@ -6,10 +6,21 @@
 
 不联网也能答，答不上来会直说，每句话都能点回原文。
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-5B5BDD?style=flat-square)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-5B5BDD?style=flat-square)
-![ChromaDB](https://img.shields.io/badge/ChromaDB-1.x-5B5BDD?style=flat-square)
-![LangGraph](https://img.shields.io/badge/LangGraph-0.2%2B-5B5BDD?style=flat-square)
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-5B5BDD?style=flat-square&amp;labelColor=3a3c63" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/FastAPI-0.115%2B-5B5BDD?style=flat-square&amp;labelColor=3a3c63" alt="FastAPI 0.115+">
+  <img src="https://img.shields.io/badge/Pydantic-v2-5B5BDD?style=flat-square&amp;labelColor=3a3c63" alt="Pydantic v2">
+  <img src="https://img.shields.io/badge/LangGraph-0.2%2B-5B5BDD?style=flat-square&amp;labelColor=3a3c63" alt="LangGraph 0.2+">
+  <img src="https://img.shields.io/badge/ChromaDB-1.x-5B5BDD?style=flat-square&amp;labelColor=3a3c63" alt="ChromaDB 1.x">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/DeepSeek-deepseek--chat-5B5BDD?style=flat-square&amp;labelColor=3a3c63" alt="DeepSeek deepseek-chat">
+  <img src="https://img.shields.io/badge/DashScope-1024d%20embedding-5B5BDD?style=flat-square&amp;labelColor=3a3c63" alt="DashScope 1024 维嵌入">
+  <img src="https://img.shields.io/badge/Tavily-search%20fallback-5B5BDD?style=flat-square&amp;labelColor=3a3c63" alt="Tavily 网络兜底">
+  <img src="https://img.shields.io/badge/%E5%89%8D%E7%AB%AF-Vanilla%20JS-5B5BDD?style=flat-square&amp;labelColor=3a3c63" alt="前端 Vanilla JS 单文件">
+  <img src="https://img.shields.io/badge/PyInstaller-onedir-5B5BDD?style=flat-square&amp;labelColor=3a3c63" alt="PyInstaller onedir">
+</p>
 
 ![问己首页](assets/01-home.webp)
 
