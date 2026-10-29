@@ -581,12 +581,13 @@ header{
 .ring.web-seal{border:1px solid var(--cyan-line);border-radius:50%;background:var(--cyan-soft);display:grid;place-items:center;color:var(--cyan)}
 .cc-date{grid-column:1;font-family:var(--font-mono);font-size:10px;color:var(--ink-3);letter-spacing:.4px}
 .cc-date.web{color:var(--cyan)}
-.cc-quote{grid-column:1;font-family:var(--font-display);font-size:12.5px;line-height:1.75;color:var(--ink-2);padding-left:11px;border-left:2px solid var(--line);font-style:italic}
+/* 引用片段只展示渲染后的 Markdown，字体/字号交给 .q-md 控制 */
+.cc-quote{grid-column:1;min-width:0;padding-left:11px;border-left:2px solid var(--line)}
 /* citation card — web */
 .cite-card.web{border:1px dashed var(--line);border-left:2px solid var(--ink-2)}
 .cite-card.web:hover{border-color:var(--cyan-line)}
 .cite-card.web .cc-tag{color:var(--ink-2);border:1px dashed var(--line);background:transparent}
-.cite-card.web .cc-quote{border-left-color:var(--cyan-line);font-style:normal;font-family:var(--font-body);font-size:12px}
+.cite-card.web .cc-quote{border-left-color:var(--cyan-line)}
 .cite-card.web.flash{animation:flashw 1.6s ease}
 @keyframes flashw{
   0%,100%{border-color:var(--line)}
@@ -851,6 +852,116 @@ header{
   color:var(--ink);font-family:var(--font-mono);font-size:12.5px;line-height:1.85;padding:16px 18px;
 }
 .kb-textarea::placeholder{color:var(--ink-3)}
+/* 编辑 / 预览 切换：预览只做渲染，绝不回写源文本 */
+.kb-mode,.pr-mode{display:flex;gap:5px;flex:none}
+.kb-mode-btn,.pr-mode-btn{
+  border:1px solid var(--line);border-radius:2px;background:transparent;color:var(--ink-3);
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.6px;padding:3px 9px;cursor:pointer;
+  transition:color .18s,border-color .18s,background .18s;
+}
+.kb-mode-btn:hover,.pr-mode-btn:hover{color:var(--amber);border-color:var(--amber)}
+.kb-mode-btn.on,.pr-mode-btn.on{color:var(--amber);border-color:var(--amber);background:var(--gold-soft)}
+.kb-mode-btn[disabled]{opacity:.38;cursor:not-allowed;border-color:var(--line-soft);color:var(--ink-3)}
+.kb-preview{
+  display:none;flex:1;min-height:330px;max-height:62vh;overflow:auto;
+  padding:16px 20px 26px;color:var(--ink);font-size:13.5px;line-height:1.85;
+}
+.kb-preview.show{display:block}
+.kb-preview > :first-child{margin-top:0}
+.kb-preview h1,.kb-preview h2,.kb-preview h3,.kb-preview h4,.kb-preview h5,.kb-preview h6{
+  font-weight:600;line-height:1.28;color:var(--ink);margin:22px 0 10px;letter-spacing:-.2px;
+}
+.kb-preview h1{font-size:23px;border-bottom:1px solid var(--line-soft);padding-bottom:8px}
+.kb-preview h2{font-size:18px}
+.kb-preview h3{font-size:15px}
+.kb-preview h4,.kb-preview h5,.kb-preview h6{font-size:13.5px;color:var(--ink-2)}
+.kb-preview p{margin:0 0 12px}
+.kb-preview ul,.kb-preview ol{margin:0 0 12px;padding-left:22px}
+.kb-preview li{margin:3px 0}
+.kb-preview li::marker{color:var(--ink-3)}
+.kb-preview li.task{list-style:none;margin-left:-18px}
+.kb-preview li.task .cb{
+  display:inline-block;width:10px;height:10px;margin-right:7px;vertical-align:-1px;
+  border:1px solid var(--ink-3);border-radius:2px;
+}
+.kb-preview li.task .cb.on{background:var(--amber);border-color:var(--amber)}
+.kb-preview blockquote{
+  margin:0 0 12px;padding:3px 0 3px 13px;border-left:2px solid var(--amber);color:var(--ink-2);
+}
+.kb-preview code{
+  font-family:var(--font-mono);font-size:.88em;background:var(--bg-4);color:var(--amber);
+  padding:1px 5px;border-radius:2px;
+}
+.kb-preview pre{
+  margin:0 0 14px;padding:12px 14px;background:var(--bg-2);border:1px solid var(--line-soft);
+  border-radius:3px;overflow:auto;
+}
+.kb-preview pre code{background:none;color:var(--ink-2);padding:0;font-size:12px;line-height:1.72}
+.kb-preview hr{border:none;border-top:1px dashed var(--line-soft);margin:20px 0}
+.kb-preview a{color:var(--amber);text-decoration:none;border-bottom:1px dotted var(--amber)}
+.kb-preview table{border-collapse:collapse;width:100%;margin:0 0 14px;font-size:12.5px}
+.kb-preview th,.kb-preview td{border:1px solid var(--line-soft);padding:6px 10px;text-align:left;vertical-align:top}
+.kb-preview th{background:var(--bg-4);color:var(--ink-2);font-weight:600}
+.kb-preview .fm{
+  font-family:var(--font-mono);font-size:11px;line-height:1.7;color:var(--ink-3);
+  background:var(--bg-2);border:1px dashed var(--line-soft);border-radius:3px;
+  padding:9px 12px;margin:0 0 16px;white-space:pre-wrap;
+}
+.kb-preview .md-img{font-family:var(--font-mono);font-size:11px;color:var(--ink-3)}
+.kb-preview .empty{color:var(--ink-3);font-family:var(--font-mono);font-size:11.5px}
+/* 个人原则：工具条 + 预览（复用 .kb-preview 排版，尺寸压到和 textarea 一致） */
+.pr-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 7px}
+.pr-hint{font-family:var(--font-mono);font-size:10px;letter-spacing:.4px;color:var(--ink-3);opacity:.8}
+.pr-preview{
+  min-height:190px;max-height:360px;border:1px solid var(--line);border-radius:3px;
+  background:var(--bg-3);padding:12px 14px;font-size:12.5px;line-height:1.78;
+}
+.pr-preview h1{font-size:17px}
+.pr-preview h2{font-size:15px}
+.pr-preview h3{font-size:13.5px}
+.pr-preview h4,.pr-preview h5,.pr-preview h6{font-size:13px}
+.pr-preview p{margin:0 0 8px}
+.pr-preview ul,.pr-preview ol{margin:0 0 8px;padding-left:20px}
+/* 聊天引用片段：渲染后的紧凑排版（只读，没有编辑态） */
+.q-md{font-size:12px;line-height:1.72;color:var(--ink-2);min-width:0}
+.q-md > :first-child{margin-top:0}
+.q-md > :last-child{margin-bottom:0}
+.q-md h1,.q-md h2,.q-md h3,.q-md h4,.q-md h5,.q-md h6{
+  font-family:var(--font-body);font-size:12.5px;font-weight:600;letter-spacing:0;
+  line-height:1.42;color:var(--ink);margin:11px 0 5px;
+}
+.q-md p{margin:0 0 7px}
+.q-md ul,.q-md ol{margin:0 0 7px;padding-left:18px}
+.q-md li{margin:1px 0}
+.q-md li::marker{color:var(--ink-3)}
+.q-md li.task{list-style:none;margin-left:-18px}
+.q-md li.task .cb{
+  display:inline-block;width:9px;height:9px;margin-right:6px;vertical-align:-1px;
+  border:1px solid var(--ink-3);border-radius:2px;
+}
+.q-md li.task .cb.on{background:var(--amber);border-color:var(--amber)}
+.q-md blockquote{margin:0 0 7px;padding-left:9px;border-left:2px solid var(--line-soft);color:var(--ink-3)}
+.q-md code{
+  font-family:var(--font-mono);font-size:11px;background:var(--bg-4);color:var(--amber);
+  padding:1px 4px;border-radius:2px;
+}
+.q-md pre{
+  margin:0 0 8px;padding:8px 10px;background:var(--bg-2);border:1px solid var(--line-soft);
+  border-radius:2px;overflow:auto;
+}
+.q-md pre code{background:none;color:var(--ink-2);padding:0;font-size:11px;line-height:1.66}
+.q-md table{border-collapse:collapse;width:100%;margin:0 0 8px;font-size:11.5px}
+.q-md th,.q-md td{
+  border:1px solid var(--line-soft);padding:4px 8px;text-align:left;
+  vertical-align:top;word-break:break-word;
+}
+.q-md th{background:var(--bg-4);color:var(--ink);font-weight:600}
+.q-md hr{border:none;border-top:1px dashed var(--line-soft);margin:10px 0}
+.q-md a{color:var(--amber);text-decoration:none;border-bottom:1px dotted var(--amber)}
+.q-md b{color:var(--ink)}
+.q-md .md-img{font-family:var(--font-mono);font-size:11px;color:var(--ink-3)}
+.q-md .fm{display:none}
+.q-md .empty,.q-md .q-empty{color:var(--ink-3);font-family:var(--font-mono);font-size:11px}
 .kb-foot{
   display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 13px;
   border-top:1px solid var(--line);background:var(--bg-2);flex-wrap:wrap;
@@ -1166,7 +1277,16 @@ header{
                 </div>
                 <button class="help-btn" data-help="principles" title="查看说明">?</button>
               </div>
+              <div class="pr-bar">
+                <span class="pr-hint">支持 Markdown：小标题 / 列表 / 加粗</span>
+                <div class="pr-mode" id="prMode">
+                  <button class="pr-mode-btn on" data-pmode="edit" title="看源码（改这里）">编辑</button>
+                  <button class="pr-mode-btn" data-pmode="preview" title="看渲染结果（只读）">预览</button>
+                </div>
+              </div>
               <textarea class="pr-textarea" id="prContent" placeholder="加载中…" spellcheck="false"></textarea>
+              <!-- 预览态：只渲染当前文本（含未保存改动），保存仍只认 textarea -->
+              <div class="kb-preview pr-preview" id="prPreview"></div>
               <div class="pr-foot">
                 <span class="meta" id="prMeta">—</span>
                 <div class="acts">
@@ -1196,6 +1316,10 @@ header{
               <div class="kb-editor-main">
                 <div class="kb-filebar">
                   <span class="path" id="kbCurPath">未选择文件</span>
+                  <div class="kb-mode" id="kbMode">
+                    <button class="kb-mode-btn on" data-mode="edit" title="看源码（改这里）">编辑</button>
+                    <button class="kb-mode-btn" data-mode="preview" title="看渲染结果（只读）" disabled>预览</button>
+                  </div>
                   <span class="dirty" id="kbDirty" style="display:none"><i class="gl gl-dot"></i>未保存</span>
                 </div>
                 <!-- 编辑/新建 md 后出现：提示可做「增量录入」，只嵌入变化片段、省 token -->
@@ -1205,6 +1329,8 @@ header{
                   <button class="btn" id="kbPendingBtn">立即增量录入</button>
                 </div>
                 <textarea class="kb-textarea" id="kbContent" placeholder="从左侧选择一个文件开始编辑，或点左上角「新建文件」建一个 Markdown…" spellcheck="false" disabled></textarea>
+                <!-- 预览态：只渲染当前文本（含未保存改动），不写回文件 -->
+                <div class="kb-preview" id="kbPreview"></div>
                 <div class="kb-foot">
                   <span class="meta" id="kbMeta">—</span>
                   <div class="acts">
@@ -1719,6 +1845,7 @@ let KB = {
   files: 0,
   lastDir: null,       // 最近一次新建/打开所在文件夹，作为新建弹窗的默认位置
   pending: new Set(),  // 已改动（保存/新建/删除）但尚未录入索引的文件路径 → 提示增量录入
+  mode: 'edit',        // 编辑器视图：edit = 看源码，preview = 看渲染结果
 };
 
 async function api(url, opts) {
@@ -1774,6 +1901,26 @@ $('#prContent').addEventListener('input', () => {
   $('#prMeta').innerHTML = ta.value === (ta.dataset.saved || '')
     ? '已保存' : '<i class="gl gl-dot"></i>有改动未保存';
 });
+
+/* 个人原则的编辑 / 预览：和知识库编辑器同一套渲染，预览只读、不回写源文本 */
+let prMode = 'edit';
+function setPrMode(mode) {
+  prMode = mode === 'preview' ? 'preview' : 'edit';
+  const ta = $('#prContent'), pv = $('#prPreview');
+  if (!ta || !pv) return;
+  document.querySelectorAll('.pr-mode-btn').forEach(b =>
+    b.classList.toggle('on', b.dataset.pmode === prMode));
+  if (prMode === 'preview') {
+    pv.innerHTML = ta.value.trim() ? mdRender(ta.value) : '<div class="empty">还没写任何原则</div>';
+    ta.style.display = 'none';
+    pv.classList.add('show');
+  } else {
+    pv.classList.remove('show');
+    ta.style.display = '';
+  }
+}
+document.querySelectorAll('.pr-mode-btn').forEach(b =>
+  b.addEventListener('click', () => setPrMode(b.dataset.pmode)));
 
 $('#prSaveBtn').addEventListener('click', async () => {
   const btn = $('#prSaveBtn');
@@ -1887,6 +2034,8 @@ async function openKbFile(path) {
     $('#kbDeleteBtn').disabled = false;
     $('#kbDirty').style.display = 'none';
     updateKbMeta();
+    syncKbModeBtns();
+    if (KB.mode === 'preview') renderKbPreview();
     document.querySelectorAll('#kbTreeBody .kb-row.file').forEach(r =>
       r.classList.toggle('active', r.dataset.file === path));
   } catch (e) {
@@ -1901,6 +2050,171 @@ function updateKbMeta() {
   const dirty = KB.current && v !== KB.loadedContent;
   $('#kbDirty').style.display = dirty ? '' : 'none';
   $('#kbSaveBtn').disabled = !KB.current || !dirty;
+}
+
+/* ---------- 编辑 / 预览 切换 ----------
+   预览渲染的是「当前 textarea 里的文本」，所以未保存的改动也能直接看效果；
+   切回编辑不改一个字，保存仍然只认 textarea。 */
+function setKbMode(mode) {
+  KB.mode = mode === 'preview' ? 'preview' : 'edit';
+  const ta = $('#kbContent'), pv = $('#kbPreview');
+  document.querySelectorAll('.kb-mode-btn').forEach(b =>
+    b.classList.toggle('on', b.dataset.mode === KB.mode));
+  if (KB.mode === 'preview') { renderKbPreview(); ta.style.display = 'none'; pv.classList.add('show'); }
+  else { pv.classList.remove('show'); ta.style.display = ''; }
+  syncKbModeBtns();
+}
+function syncKbModeBtns() {
+  const pvBtn = document.querySelector('.kb-mode-btn[data-mode="preview"]');
+  if (pvBtn) pvBtn.disabled = !KB.current;
+}
+function renderKbPreview() {
+  const pv = $('#kbPreview');
+  if (!pv) return;
+  if (!KB.current) { pv.innerHTML = '<div class="empty">先从左侧选一个文件</div>'; return; }
+  pv.innerHTML = mdRender($('#kbContent').value);
+}
+
+/* ---------- 轻量 Markdown 渲染（预览专用，纯展示） ----------
+   覆盖：frontmatter / 标题 / 围栏代码 / 列表(含任务与一层嵌套) / 引用 / 表格 / 分隔线 /
+   行内代码、加粗、斜体、删除线、链接、图片(降级为文字)。
+   一律先转义再拼，所以 docs/ 里粘进来的 HTML 或 script 不会被执行。 */
+function mdRender(src) {
+  const raw = String(src == null ? '' : src).replace(/\r\n?/g, '\n');
+  if (!raw.trim()) return '<div class="empty">（空文件）</div>';
+  const lines = raw.split('\n');
+  const out = [];
+  let i = 0;
+
+  // frontmatter：开头的 --- ... --- 元数据，小字原样展示，不参与正文渲染。
+  // 必须块内真有 key: value 才算 frontmatter，否则只是两条分隔线，不能吞内容
+  if (/^---\s*$/.test(lines[0])) {
+    let end = -1;
+    for (let k = 1; k < lines.length && k < 60; k++) {
+      if (/^---\s*$/.test(lines[k])) { end = k; break; }
+    }
+    if (end > 0 && lines.slice(1, end).some(l => /^\s*[\w-]+\s*:/.test(l))) {
+      out.push('<div class="fm">' + escapeHTML(lines.slice(1, end).join('\n')) + '</div>');
+      i = end + 1;
+    }
+  }
+
+  while (i < lines.length) {
+    const ln = lines[i];
+
+    // 围栏代码块
+    const fence = ln.match(/^\s*(```|~~~)/);
+    if (fence) {
+      const close = new RegExp('^\\s*' + fence[1] + '\\s*$');
+      const buf = [];
+      i++;
+      while (i < lines.length && !close.test(lines[i])) { buf.push(lines[i]); i++; }
+      i++;
+      out.push('<pre><code>' + escapeHTML(buf.join('\n')) + '</code></pre>');
+      continue;
+    }
+
+    // 标题
+    const h = ln.match(/^\s{0,3}(#{1,6})\s+(.*)$/);
+    if (h) {
+      const lv = h[1].length;
+      out.push('<h' + lv + '>' + mdInline(h[2].replace(/\s*#+\s*$/, '').trim()) + '</h' + lv + '>');
+      i++; continue;
+    }
+
+    // 分隔线
+    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(ln)) { out.push('<hr>'); i++; continue; }
+
+    // 表格：本行含 | 且下一行是 |---|---| 形式的分隔行
+    if (ln.includes('|') && i + 1 < lines.length && /^\s*\|?[\s:|-]*-[\s:|-]*$/.test(lines[i + 1])) {
+      const cell = r => r.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(c => c.trim());
+      const head = cell(ln);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].includes('|') && lines[i].trim()) { rows.push(cell(lines[i])); i++; }
+      out.push('<table><thead><tr>' + head.map(c => '<th>' + mdInline(c) + '</th>').join('') +
+        '</tr></thead><tbody>' + rows.map(r =>
+          '<tr>' + head.map((_, k) => '<td>' + mdInline(r[k] || '') + '</td>').join('') + '</tr>').join('') +
+        '</tbody></table>');
+      continue;
+    }
+
+    // 引用
+    if (/^\s*>/.test(ln)) {
+      const buf = [];
+      while (i < lines.length && /^\s*>/.test(lines[i])) { buf.push(lines[i].replace(/^\s*>\s?/, '')); i++; }
+      out.push('<blockquote>' + buf.map(mdInline).join('<br>') + '</blockquote>');
+      continue;
+    }
+
+    // 列表
+    if (/^(\s*)([-*+]|\d+[.)])\s+/.test(ln)) {
+      const items = [];
+      while (i < lines.length) {
+        const m = lines[i].match(/^(\s*)([-*+]|\d+[.)])\s+(.*)$/);
+        if (!m) break;
+        items.push({ indent: m[1].replace(/\t/g, '  ').length, ord: /\d/.test(m[2]), text: m[3] });
+        i++;
+      }
+      out.push(mdList(items));
+      continue;
+    }
+
+    if (!ln.trim()) { i++; continue; }
+
+    // 段落：连续非空、且不是块起始的行
+    const buf = [];
+    while (i < lines.length && lines[i].trim() && !mdBlockStart(lines[i])) { buf.push(lines[i]); i++; }
+    out.push('<p>' + buf.map(mdInline).join('<br>') + '</p>');
+  }
+  return out.join('');
+}
+
+function mdBlockStart(ln) {
+  return /^\s*(```|~~~)/.test(ln) || /^\s{0,3}#{1,6}\s/.test(ln) || /^\s*>/.test(ln) ||
+    /^\s*([-*+]|\d+[.)])\s+/.test(ln) || /^\s*([-*_])(\s*\1){2,}\s*$/.test(ln);
+}
+
+/* 列表转嵌套 ul/ol：按缩进建层级，深度不限但实际只用 1~2 层 */
+function mdList(items) {
+  const root = [];
+  const stack = [{ indent: -1, kids: root }];
+  items.forEach(it => {
+    while (stack.length > 1 && it.indent <= stack[stack.length - 1].indent) stack.pop();
+    const node = { text: it.text, ord: it.ord, kids: [] };
+    stack[stack.length - 1].kids.push(node);
+    stack.push({ indent: it.indent, kids: node.kids });
+  });
+  const build = nodes => nodes.map(n => {
+    const task = n.text.match(/^\[([ xX])\]\s+(.*)$/);
+    const body = task
+      ? '<i class="cb' + (task[1].trim() ? ' on' : '') + '"></i>' + mdInline(task[2])
+      : mdInline(n.text);
+    const sub = n.kids.length
+      ? (n.kids[0].ord ? '<ol>' : '<ul>') + build(n.kids) + (n.kids[0].ord ? '</ol>' : '</ul>')
+      : '';
+    return '<li' + (task ? ' class="task"' : '') + '>' + body + sub + '</li>';
+  }).join('');
+  const tag = items[0] && items[0].ord ? 'ol' : 'ul';
+  return '<' + tag + '>' + build(root) + '</' + tag + '>';
+}
+
+/* 行内样式：先把 `代码` 摘出来占位，处理完链接/加粗/斜体再接回去，
+   避免代码里的 ** 或 * 被误吃 */
+function mdInline(s) {
+  const codes = [];
+  let t = escapeHTML(s || '').replace(/`([^`]+)`/g, (m, c) => {
+    codes.push('<code>' + c + '</code>');
+    return '\u0001' + (codes.length - 1) + '\u0001';
+  });
+  t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)[^)]*\)/g, (m, alt, url) =>
+    '<span class="md-img">图片：' + (alt || url) + '</span>');
+  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)[^)]*\)/g, (m, txt, url) =>
+    '<a href="' + url + '" target="_blank" rel="noreferrer">' + txt + '</a>');
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  t = t.replace(/(^|[^*\w])\*([^*\n]+)\*/g, '$1<i>$2</i>');
+  t = t.replace(/~~([^~]+)~~/g, '<s>$1</s>');
+  return t.replace(/\u0001(\d+)\u0001/g, (m, n) => codes[+n]);
 }
 
 /* ---- 「待录入索引」提示：编辑/新建/删除 md 后提醒做增量录入（省 token）---- */
@@ -1986,6 +2300,7 @@ async function deleteKbPath(path) {
       $('#kbContent').value = ''; $('#kbContent').disabled = true;
       $('#kbSaveBtn').disabled = true; $('#kbDeleteBtn').disabled = true;
       $('#kbDirty').style.display = 'none'; $('#kbMeta').textContent = '—';
+      $('#kbPreview').innerHTML = ''; setKbMode('edit');
     }
     await refreshKbStats();
     // 旧内容仍在索引里 → 提示增量录入（会清除已删片段）
@@ -2163,6 +2478,9 @@ $('#kbNewDirBtn').addEventListener('click', async () => {
 
 $('#kbTreeRefreshBtn').addEventListener('click', () => { refreshKbTree(); toast('目录树已刷新'); });
 $('#kbSaveBtn').addEventListener('click', saveKbFile);
+// 编辑 / 预览 切换
+document.querySelectorAll('.kb-mode-btn').forEach(b =>
+  b.addEventListener('click', () => { if (!b.disabled) setKbMode(b.dataset.mode); }));
 $('#kbDeleteBtn').addEventListener('click', () => { if (KB.current) deleteKbPath(KB.current); });
 $('#kbContent').addEventListener('input', updateKbMeta);
 // Ctrl/Cmd + S 保存
@@ -2426,6 +2744,13 @@ function buildFunnelSteps(data, webN) {
   </div>`;
 }
 
+/* 引用片段：直接给渲染后的 Markdown（只读，聊天里不提供编辑态） */
+function quoteHTML(text) {
+  const s = String(text || '').trim();
+  if (!s) return '<div class="q-md"><span class="q-empty">（空片段）</span></div>';
+  return '<div class="q-md">' + mdRender(s) + '</div>';
+}
+
 function buildCitations(local, web) {
   const total = local.length + web.length;
   let body = '';
@@ -2435,7 +2760,7 @@ function buildCitations(local, web) {
       <div class="cc-head"><span class="cc-tag">${escapeHTML(c.source_type || 'docs')}</span><span class="cc-path">${escapeHTML(c.source)}</span></div>
       ${scoreRing(c.score)}
       <div class="cc-date">${escapeHTML(c.date || '无日期')}</div>
-      <div class="cc-quote">${escapeHTML(c.chunk || '')}</div>
+      <div class="cc-quote">${quoteHTML(c.chunk)}</div>
     </div>`).join('');
   }
   if (web.length) {
@@ -2445,7 +2770,7 @@ function buildCitations(local, web) {
       <div class="cc-head"><span class="cc-tag">web</span><a class="cc-url" href="${escapeHTML(c.source)}" target="_blank" rel="noopener">${escapeHTML(c.title || c.source)}</a></div>
       ${webSeal()}
       <div class="cc-date web">Tavily 摘要</div>
-      <div class="cc-quote">${escapeHTML(c.chunk || '')}</div>
+      <div class="cc-quote">${quoteHTML(c.chunk)}</div>
     </div>`).join('');
   }
   return `<div class="expander" open>
